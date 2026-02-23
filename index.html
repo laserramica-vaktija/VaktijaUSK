@@ -39,23 +39,23 @@ footer{margin-top:20px;font-size:16px;font-weight:bold;color:#fff;}
 <div class="namaz-container" id="namazi"></div>
 <footer>by: AmelR.</footer>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/praytimes/2.3.0/praytimes.min.js"></script>
 <script>
+// Staticka tabela namaza za januar/februar (primjer, mora se ažurirati po IZ)
+const fixedTimes = {
+"Bihać":{"Fajr":"05:07","Dhuhr":"12:15","Asr":"15:08","Maghrib":"17:43","Isha":"19:08"},
+"Bosanska Krupa":{"Fajr":"05:07","Dhuhr":"12:15","Asr":"15:09","Maghrib":"17:44","Isha":"19:09"},
+"Bosanski Petrovac":{"Fajr":"05:09","Dhuhr":"12:16","Asr":"15:10","Maghrib":"17:45","Isha":"19:10"},
+"Bužim":{"Fajr":"05:06","Dhuhr":"12:14","Asr":"15:07","Maghrib":"17:42","Isha":"19:07"},
+"Cazin":{"Fajr":"05:08","Dhuhr":"12:15","Asr":"15:09","Maghrib":"17:44","Isha":"19:09"},
+"Ključ":{"Fajr":"05:10","Dhuhr":"12:17","Asr":"15:11","Maghrib":"17:46","Isha":"19:11"},
+"Sanski Most":{"Fajr":"05:06","Dhuhr":"12:14","Asr":"15:07","Maghrib":"17:42","Isha":"19:07"},
+"Velika Kladuša":{"Fajr":"05:05","Dhuhr":"12:13","Asr":"15:06","Maghrib":"17:41","Isha":"19:06"}
+};
+
 const prayerNames={"Fajr":"Sabah","Dhuhr":"Podne","Asr":"Ikindija","Maghrib":"Akšam","Isha":"Jacija"};
 const prayerOrder=["Fajr","Dhuhr","Asr","Maghrib","Isha"];
+const offsetMinutes=-4; // pomak
 let prayerTimes={};
-
-// Gradovi i koordinate
-const cityCoords={
-"Bihać":[44.8167,15.8700],
-"Bosanska Krupa":[44.9939,16.0067],
-"Bosanski Petrovac":[44.7586,16.2183],
-"Bužim":[44.8914,15.8006],
-"Cazin":[44.9922,15.9833],
-"Ključ":[44.5461,16.0978],
-"Sanski Most":[44.7617,16.7108],
-"Velika Kladuša":[45.2036,15.8744]
-};
 
 // datum i sat
 function updateDate(){document.getElementById("date").textContent=new Date().toLocaleDateString("bs-BA");}
@@ -65,6 +65,15 @@ setInterval(updateClock,1000); updateClock();
 
 // Notifikacije
 function enableNotifications(){Notification.requestPermission().then(p=>{if(p==="granted"){alert("Notifikacije uključene ✅");}});}
+
+// Pomak vremena
+function applyOffset(timeStr){
+    const parts=timeStr.split(":");
+    let date=new Date();
+    date.setHours(parts[0], parts[1], 0);
+    date.setMinutes(date.getMinutes()+offsetMinutes);
+    return date.getHours().toString().padStart(2,"0")+":"+date.getMinutes().toString().padStart(2,"0");
+}
 
 // Schedule beep 5 min prije
 function schedulePrayer(vrijeme, ime){
@@ -81,17 +90,6 @@ function schedulePrayer(vrijeme, ime){
         const beep=new Audio("https://www.soundjay.com/button/beep-07.mp3");
         beep.play().catch(()=>{});
     },timeout);
-}
-
-// Offset -4 minute
-const offsetMinutes=-4;
-function applyOffset(timeStr){
-    const parts=timeStr.split(":");
-    if(parts.length<2) return "00:00";
-    let date=new Date();
-    date.setHours(parts[0], parts[1], 0);
-    date.setMinutes(date.getMinutes()+offsetMinutes);
-    return date.getHours().toString().padStart(2,"0")+":"+date.getMinutes().toString().padStart(2,"0");
 }
 
 // Prikaz sljedećeg namaza
@@ -130,23 +128,15 @@ function showNamazi(times){
 // Odabir grada
 function selectCity(){
     const city=document.getElementById("citySelect").value;
-    const coords=cityCoords[city];
-    const prayTimes=new PrayTimes('MWL');
-    prayTimes.adjust({asr:'Hanafi'});
-    const now=new Date();
-    const tzOffset = -now.getTimezoneOffset()/60; // Europe/Sarajevo automatski
-    const times=prayTimes.getTimes(now,[coords[0],coords[1]],tzOffset);
-    prayerTimes={
-        "Fajr":applyOffset(times.fajr.slice(0,5)),
-        "Dhuhr":applyOffset(times.dhuhr.slice(0,5)),
-        "Asr":applyOffset(times.asr.slice(0,5)),
-        "Maghrib":applyOffset(times.maghrib.slice(0,5)),
-        "Isha":applyOffset(times.isha.slice(0,5))
-    };
+    const times=fixedTimes[city];
+    prayerTimes={};
+    for(let key of prayerOrder){
+        prayerTimes[key]=applyOffset(times[key]);
+    }
     showNamazi(prayerTimes);
 }
 
-// Učitaj default grad
+// učitaj default grad
 selectCity();
 
 // Offline support
