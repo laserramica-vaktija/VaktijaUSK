@@ -15,9 +15,7 @@ body{
     text-align:center;
 }
 
-h2{
-    margin-bottom:5px;
-}
+h2{ margin-bottom:5px; }
 
 #sat{
     font-size:18px;
@@ -38,9 +36,7 @@ button{
     cursor:pointer;
 }
 
-button:hover{
-    background:#15803d;
-}
+button:hover{ background:#15803d; }
 
 .namaz-container{
     max-width:400px;
@@ -57,11 +53,18 @@ button:hover{
     display:flex;
     justify-content:space-between;
     align-items:center;
+    transition:0.3s;
 }
 
 .namaz span{
     font-weight:bold;
     font-size:22px;
+}
+
+/* AKTIVNI NAMAZ */
+.aktivni{
+    background:#16a34a !important;
+    box-shadow:0 0 20px rgba(22,163,74,0.8);
 }
 
 .admin{
@@ -83,38 +86,43 @@ button:hover{
 
 <body>
 
-<h2>Vaktija USK </h2>
+<h2>Vaktija USK (Hanefijski)</h2>
 
 <select id="grad">
 <option value="krupa">Bosanska Krupa</option>
 <option value="kladusa">Velika Kladuša</option>
+<option value="bihac">Bihać</option>
+<option value="cazin">Cazin</option>
+<option value="sanski">Sanski Most</option>
+<option value="buzim">Bužim</option>
+<option value="petrovac">Bosanski Petrovac</option>
 </select>
 
 <h3 id="sat"></h3>
 
 <div class="namaz-container">
 
-<div class="namaz">
+<div class="namaz" id="box_fajr">
     <div>Fajr</div>
     <span id="fajr"></span>
 </div>
 
-<div class="namaz">
+<div class="namaz" id="box_dhuhr">
     <div>Podne</div>
     <span id="dhuhr"></span>
 </div>
 
-<div class="namaz">
+<div class="namaz" id="box_asr">
     <div>Ikindija</div>
     <span id="asr"></span>
 </div>
 
-<div class="namaz">
+<div class="namaz" id="box_maghrib">
     <div>Akšam</div>
     <span id="maghrib"></span>
 </div>
 
-<div class="namaz">
+<div class="namaz" id="box_isha">
     <div>Jacija</div>
     <span id="isha"></span>
 </div>
@@ -210,18 +218,15 @@ function calculateTimes(){
     document.getElementById("maghrib").innerHTML = formatTime(maghrib);
     document.getElementById("isha").innerHTML = formatTime(isha);
 
-    var trenutno = formatTime(now);
-    var lista = [
-        formatTime(fajr),
-        formatTime(dhuhr),
-        formatTime(asr),
-        formatTime(maghrib),
-        formatTime(isha)
-    ];
+    // reset boje
+    document.querySelectorAll(".namaz").forEach(el => el.classList.remove("aktivni"));
 
-    if(lista.includes(trenutno)){
-        document.getElementById("beep").play();
-    }
+    if(now >= fajr && now < dhuhr) document.getElementById("box_fajr").classList.add("aktivni");
+    else if(now >= dhuhr && now < asr) document.getElementById("box_dhuhr").classList.add("aktivni");
+    else if(now >= asr && now < maghrib) document.getElementById("box_asr").classList.add("aktivni");
+    else if(now >= maghrib && now < isha) document.getElementById("box_maghrib").classList.add("aktivni");
+    else document.getElementById("box_isha").classList.add("aktivni");
+
 }
 
 function update(){
@@ -237,4 +242,3 @@ setInterval(update,1000);
 
 </body>
 </html>
-
