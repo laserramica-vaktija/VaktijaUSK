@@ -1,13 +1,13 @@
 {
-  "name": "Vaktija PRO",
-  "short_name": "Vaktija",
+  "name": "VaktijaUSK",
+  "short_name": "VaktijaUSK",
   "start_url": "index.html",
   "display": "standalone",
   "background_color": "#0f172a",
   "theme_color": "#0f172a",
   "icons": [
     {
-      "src": "icon.png",
+      "src": "ikon.png",
       "sizes": "192x192",
       "type": "image/png"
     }
