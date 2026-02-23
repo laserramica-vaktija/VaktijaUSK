@@ -70,6 +70,7 @@ function enableNotifications(){Notification.requestPermission().then(p=>{if(p===
 function schedulePrayer(vrijeme, ime){
     if(!vrijeme) return;
     const parts=vrijeme.split(":");
+    if(parts.length<2) return;
     const now=new Date();
     const prayerDate=new Date();
     prayerDate.setHours(parts[0],parts[1],0);
@@ -86,8 +87,9 @@ function schedulePrayer(vrijeme, ime){
 const offsetMinutes=-4;
 function applyOffset(timeStr){
     const parts=timeStr.split(":");
+    if(parts.length<2) return "00:00";
     let date=new Date();
-    date.setHours(parts[0],parts[1],0);
+    date.setHours(parts[0], parts[1], 0);
     date.setMinutes(date.getMinutes()+offsetMinutes);
     return date.getHours().toString().padStart(2,"0")+":"+date.getMinutes().toString().padStart(2,"0");
 }
@@ -132,7 +134,7 @@ function selectCity(){
     const prayTimes=new PrayTimes('MWL');
     prayTimes.adjust({asr:'Hanafi'});
     const now=new Date();
-    const times=prayTimes.getTimes(now,[coords[0],coords[1]],+1);
+    const times=prayTimes.getTimes(now,[coords[0],coords[1]], new Date().getTimezoneOffset()/60*-1); // automatski lokalno
     prayerTimes={
         "Fajr":applyOffset(times.fajr.slice(0,5)),
         "Dhuhr":applyOffset(times.dhuhr.slice(0,5)),
