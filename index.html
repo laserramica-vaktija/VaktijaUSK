@@ -40,6 +40,14 @@ button{
     margin-bottom:10px;
 }
 
+select{
+    padding:10px;
+    border-radius:12px;
+    margin-bottom:15px;
+    font-size:16px;
+    font-weight:bold;
+}
+
 .namaz-container{
     display:grid;
     grid-template-columns: repeat(2,1fr);
@@ -69,29 +77,6 @@ button{
     background:#00c6ff;
     color:black;
 }
-
-#qibla{
-    margin-top:20px;
-}
-
-#compass{
-    width:100px;
-    height:100px;
-    border:3px solid white;
-    border-radius:50%;
-    margin:auto;
-    position:relative;
-}
-
-#needle{
-    width:4px;
-    height:45px;
-    background:red;
-    position:absolute;
-    top:15px;
-    left:50%;
-    transform-origin: bottom center;
-}
 </style>
 </head>
 <body>
@@ -103,14 +88,19 @@ button{
 
 <button onclick="enableNotifications()">🔔 Uključi notifikacije</button>
 
-<div class="namaz-container" id="namazi"></div>
+<br>
+<select id="citySelect" onchange="selectCity()">
+<option value="Bihać">Bihać</option>
+<option value="Bosanska Krupa">Bosanska Krupa</option>
+<option value="Bosanski Petrovac">Bosanski Petrovac</option>
+<option value="Bužim">Bužim</option>
+<option value="Cazin">Cazin</option>
+<option value="Ključ">Ključ</option>
+<option value="Sanski Most">Sanski Most</option>
+<option value="Velika Kladuša">Velika Kladuša</option>
+</select>
 
-<div id="qibla">
-<h3>Kibla</h3>
-<div id="compass">
-<div id="needle"></div>
-</div>
-</div>
+<div class="namaz-container" id="namazi"></div>
 
 <script>
 let prayerTimes = {};
@@ -123,6 +113,17 @@ let prayerNames = {
     "Isha":"Jacija"
 };
 
+const cities = {
+    "Bihać": {lat:44.8167, lon:15.8700},
+    "Bosanska Krupa": {lat:44.8722, lon:16.1317},
+    "Bosanski Petrovac": {lat:44.6844, lon:16.0542},
+    "Bužim": {lat:44.8594, lon:16.1233},
+    "Cazin": {lat:44.9903, lon:15.9425},
+    "Ključ": {lat:44.7183, lon:16.0486},
+    "Sanski Most": {lat:44.7442, lon:16.6511},
+    "Velika Kladuša": {lat:45.1225, lon:15.8258}
+};
+
 function updateClock(){
     document.getElementById("clock").innerHTML =
         new Date().toLocaleTimeString("bs-BA");
@@ -132,7 +133,7 @@ updateClock();
 
 function enableNotifications(){
     Notification.requestPermission().then(permission=>{
-        if(permission === "granted"){
+        if(permission==="granted"){
             alert("Notifikacije uključene ✅");
         }
     });
@@ -148,7 +149,7 @@ function schedulePrayer(vrijeme, ime){
     if(timeout < 0) return;
 
     setTimeout(()=>{
-        if(Notification.permission === "granted"){
+        if(Notification.permission==="granted"){
             new Notification("🕌 Vrijeme je za " + ime);
         }
         const audio = new Audio("https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg");
@@ -175,26 +176,27 @@ function showNamazi(times){
     const container = document.getElementById("namazi");
     container.innerHTML="";
     const next = getNextPrayer();
+
     for(let key of prayerOrder){
         const div = document.createElement("div");
         div.className="namaz";
-        if(key === next) div.classList.add("highlight");
+        if(key===next) div.classList.add("highlight");
         div.innerHTML = `<h3>${prayerNames[key]}</h3><p>${times[key]}</p>`;
         container.appendChild(div);
         schedulePrayer(times[key], prayerNames[key]);
     }
 }
 
-function fetchTimes(lat,lon){
+function fetchTimes(lat, lon, city){
     fetch(`https://api.aladhan.com/v1/timings?latitude=${lat}&longitude=${lon}&method=13`)
     .then(res=>res.json())
     .then(data=>{
         prayerTimes = data.data.timings;
-        localStorage.setItem("prayerTimes", JSON.stringify(prayerTimes));
+        localStorage.setItem("prayerTimes-"+city, JSON.stringify(prayerTimes));
         showNamazi(prayerTimes);
     })
     .catch(()=>{
-        const saved = localStorage.getItem("prayerTimes");
+        const saved = localStorage.getItem("prayerTimes-"+city);
         if(saved){
             prayerTimes = JSON.parse(saved);
             showNamazi(prayerTimes);
@@ -202,30 +204,23 @@ function fetchTimes(lat,lon){
     });
 }
 
-function getLocation(){
-    if(navigator.geolocation){
-        navigator.geolocation.getCurrentPosition(pos=>{
-            fetchTimes(pos.coords.latitude,pos.coords.longitude);
-        },()=>{loadOffline();});
-    } else {
-        loadOffline();
-    }
+function selectCity(){
+    const city = document.getElementById("citySelect").value;
+    const coords = cities[city];
+    fetchTimes(coords.lat, coords.lon, city);
 }
 
-function loadOffline(){
-    const saved = localStorage.getItem("prayerTimes");
-    if(saved){
-        prayerTimes = JSON.parse(saved);
-        showNamazi(prayerTimes);
-    }
+function loadDefaultCity(){
+    const defaultCity = document.getElementById("citySelect").value;
+    const coords = cities[defaultCity];
+    fetchTimes(coords.lat, coords.lon, defaultCity);
 }
 
-getLocation();
+loadDefaultCity();
 
 if("serviceWorker" in navigator){
     navigator.serviceWorker.register("sw.js");
 }
-
 </script>
 
 </body>
