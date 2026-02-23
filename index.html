@@ -5,96 +5,26 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Vaktija USK</title>
 <link rel="manifest" href="manifest.json">
-
 <style>
-body{
-    margin:0;
-    font-family:'Segoe UI',sans-serif;
-    background: linear-gradient(135deg,#0f2027,#203a43,#2c5364);
-    color:white;
-    text-align:center;
-}
-
-h1{ margin-top:15px; }
-
-#clock{
-    font-size:56px;
-    font-weight:900;
-    margin:5px 0;
-}
-
-#nextPrayer{
-    font-size:20px;
-    font-weight:bold;
-    margin-bottom:10px;
-}
-
-button{
-    padding:10px 20px;
-    border:none;
-    border-radius:20px;
-    background:#00c6ff;
-    color:black;
-    font-weight:bold;
-    cursor:pointer;
-    margin-bottom:10px;
-}
-
-select{
-    padding:10px;
-    border-radius:12px;
-    margin-bottom:15px;
-    font-size:16px;
-    font-weight:bold;
-}
-
-.namaz-container{
-    display:grid;
-    grid-template-columns: repeat(2,1fr);
-    gap:15px;
-    padding:15px;
-}
-
-.namaz{
-    background: rgba(255,255,255,0.1);
-    border-radius:15px;
-    padding:15px;
-    backdrop-filter: blur(5px);
-}
-
-.namaz h3{
-    margin:0;
-    font-size:20px;
-}
-
-.namaz p{
-    margin-top:8px;
-    font-size:24px;
-    font-weight:bold;
-}
-
-.highlight{
-    background:#00c6ff;
-    color:black;
-}
-
-footer{
-    margin-top:20px;
-    font-size:14px;
-    color:#ccc;
-}
+body{margin:0;font-family:'Segoe UI',sans-serif;background:linear-gradient(135deg,#0f2027,#203a43,#2c5364);color:white;text-align:center;}
+h1{margin-top:15px;}
+#clock{font-size:56px;font-weight:900;margin:5px 0;}
+#nextPrayer{font-size:20px;font-weight:bold;margin-bottom:10px;}
+button{padding:10px 20px;border:none;border-radius:20px;background:#00c6ff;color:black;font-weight:bold;cursor:pointer;margin-bottom:10px;}
+select{padding:10px;border-radius:12px;margin-bottom:15px;font-size:16px;font-weight:bold;}
+.namaz-container{display:grid;grid-template-columns: repeat(2,1fr);gap:15px;padding:15px;}
+.namaz{background: rgba(255,255,255,0.1);border-radius:15px;padding:15px;backdrop-filter: blur(5px);}
+.namaz h3{margin:0;font-size:20px;}
+.namaz p{margin-top:8px;font-size:24px;font-weight:bold;}
+.highlight{background:#00c6ff;color:black;}
+footer{margin-top:20px;font-size:16px;font-weight:bold;color:#fff;}
 </style>
 </head>
 <body>
-
 <h1>🕌 Vaktija USK</h1>
-
 <div id="clock"></div>
 <div id="nextPrayer"></div>
-
-<button onclick="enableNotifications()">🔔 Uključi notifikacije</button>
-
-<br>
+<button onclick="enableNotifications()">🔔 Uključi notifikacije</button><br>
 <select id="citySelect" onchange="selectCity()">
 <option value="Bihać">Bihać</option>
 <option value="Bosanska Krupa">Bosanska Krupa</option>
@@ -105,119 +35,84 @@ footer{
 <option value="Sanski Most">Sanski Most</option>
 <option value="Velika Kladuša">Velika Kladuša</option>
 </select>
-
 <div class="namaz-container" id="namazi"></div>
-
 <footer>by: AmelR.</footer>
 
 <script>
-let prayerTimes = {};
-let prayerOrder = ["Fajr","Dhuhr","Asr","Maghrib","Isha"];
-let prayerNames = {
-    "Fajr":"Sabah",
-    "Dhuhr":"Podne",
-    "Asr":"Ikindija",
-    "Maghrib":"Akšam",
-    "Isha":"Jacija"
-};
+let prayerTimes={}, prayerOrder=["Fajr","Dhuhr","Asr","Maghrib","Isha"];
+let prayerNames={"Fajr":"Sabah","Dhuhr":"Podne","Asr":"Ikindija","Maghrib":"Akšam","Isha":"Jacija"};
 
-// Službena vremena namaza IZ BiH za 23. februar 2026 (primjer) za svaki grad
 const timesUSK = {
-    "Bihać":{"Fajr":"05:07","Dhuhr":"12:15","Asr":"15:08","Maghrib":"17:43","Isha":"19:08"},
-    "Bosanska Krupa":{"Fajr":"05:09","Dhuhr":"12:16","Asr":"15:09","Maghrib":"17:44","Isha":"19:09"},
-    "Bosanski Petrovac":{"Fajr":"05:12","Dhuhr":"12:18","Asr":"15:11","Maghrib":"17:46","Isha":"19:11"},
-    "Bužim":{"Fajr":"05:06","Dhuhr":"12:14","Asr":"15:07","Maghrib":"17:42","Isha":"19:07"},
-    "Cazin":{"Fajr":"05:05","Dhuhr":"12:13","Asr":"15:06","Maghrib":"17:41","Isha":"19:06"},
-    "Ključ":{"Fajr":"05:10","Dhuhr":"12:17","Asr":"15:10","Maghrib":"17:45","Isha":"19:10"},
-    "Sanski Most":{"Fajr":"05:08","Dhuhr":"12:15","Asr":"15:08","Maghrib":"17:43","Isha":"19:08"},
-    "Velika Kladuša":{"Fajr":"05:04","Dhuhr":"12:12","Asr":"15:05","Maghrib":"17:40","Isha":"19:05"}
+"Bihać":{"Fajr":"05:07","Dhuhr":"12:15","Asr":"15:08","Maghrib":"17:43","Isha":"19:08"},
+"Bosanska Krupa":{"Fajr":"05:09","Dhuhr":"12:16","Asr":"15:09","Maghrib":"17:44","Isha":"19:09"},
+"Bosanski Petrovac":{"Fajr":"05:12","Dhuhr":"12:18","Asr":"15:11","Maghrib":"17:46","Isha":"19:11"},
+"Bužim":{"Fajr":"05:06","Dhuhr":"12:14","Asr":"15:07","Maghrib":"17:42","Isha":"19:07"},
+"Cazin":{"Fajr":"05:05","Dhuhr":"12:13","Asr":"15:06","Maghrib":"17:41","Isha":"19:06"},
+"Ključ":{"Fajr":"05:10","Dhuhr":"12:17","Asr":"15:10","Maghrib":"17:45","Isha":"19:10"},
+"Sanski Most":{"Fajr":"05:08","Dhuhr":"12:15","Asr":"15:08","Maghrib":"17:43","Isha":"19:08"},
+"Velika Kladuša":{"Fajr":"05:04","Dhuhr":"12:12","Asr":"15:05","Maghrib":"17:40","Isha":"19:05"}
 };
 
-function updateClock(){
-    document.getElementById("clock").innerHTML =
-        new Date().toLocaleTimeString("bs-BA");
-}
-setInterval(updateClock,1000);
-updateClock();
+function updateClock(){document.getElementById("clock").innerHTML=new Date().toLocaleTimeString("bs-BA");}
+setInterval(updateClock,1000);updateClock();
 
-function enableNotifications(){
-    Notification.requestPermission().then(permission=>{
-        if(permission==="granted"){
-            alert("Notifikacije uključene ✅");
-        }
-    });
-}
+function enableNotifications(){Notification.requestPermission().then(p=>{if(p==="granted"){alert("Notifikacije uključene ✅");}});}
 
 function schedulePrayer(vrijeme, ime){
     if(!vrijeme) return;
-    const parts = vrijeme.split(":");
-    const now = new Date();
-    const prayerDate = new Date();
-    prayerDate.setHours(parts[0], parts[1], 0);
-    let timeout = prayerDate - now - (5*60*1000);
-    if(timeout < 0) return;
-
+    const parts=vrijeme.split(":");
+    const now=new Date();
+    const prayerDate=new Date();
+    prayerDate.setHours(parts[0],parts[1],0);
+    let timeout=prayerDate-now-(5*60*1000);
+    if(timeout<0) return;
     setTimeout(()=>{
-        if(Notification.permission==="granted"){
-            new Notification("🕌 Vrijeme je za " + ime);
-        }
-        const audio = new Audio("https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg");
+        if(Notification.permission==="granted"){new Notification("🕌 Vrijeme je za "+ime);}
+        const audio = new Audio("azan.mp3");
         audio.play().catch(()=>{});
-    }, timeout);
+    },timeout);
 }
 
 function getNextPrayer(){
-    const now = new Date();
+    const now=new Date();
     for(let key of prayerOrder){
-        const parts = prayerTimes[key].split(":");
-        const prayerDate = new Date();
-        prayerDate.setHours(parts[0], parts[1], 0);
-        if(prayerDate > now){
-            document.getElementById("nextPrayer").innerHTML =
-                "Sljedeći namaz: " + prayerNames[key] + " u " + prayerTimes[key];
-            return key;
-        }
+        const parts=prayerTimes[key].split(":");
+        const prayerDate=new Date();
+        prayerDate.setHours(parts[0],parts[1],0);
+        if(prayerDate>now){document.getElementById("nextPrayer").innerHTML="Sljedeći namaz: "+prayerNames[key]+" u "+prayerTimes[key];return key;}
     }
-    document.getElementById("nextPrayer").innerHTML = "Sljedeći namaz: Sabah sutra";
+    document.getElementById("nextPrayer").innerHTML="Sljedeći namaz: Sabah sutra";
 }
 
 function showNamazi(times){
-    const container = document.getElementById("namazi");
-    container.innerHTML="";
-    const next = getNextPrayer();
-
+    const container=document.getElementById("namazi");container.innerHTML="";
+    const next=getNextPrayer();
     for(let key of prayerOrder){
-        const div = document.createElement("div");
+        const div=document.createElement("div");
         div.className="namaz";
         if(key===next) div.classList.add("highlight");
-        div.innerHTML = `<h3>${prayerNames[key]}</h3><p>${times[key]}</p>`;
+        div.innerHTML=`<h3>${prayerNames[key]}</h3><p>${times[key]}</p>`;
         container.appendChild(div);
-        schedulePrayer(times[key], prayerNames[key]);
+        schedulePrayer(times[key],prayerNames[key]);
     }
 }
 
 function selectCity(){
-    const city = document.getElementById("citySelect").value;
-    prayerTimes = timesUSK[city];
-    localStorage.setItem("prayerTimes-"+city, JSON.stringify(prayerTimes));
+    const city=document.getElementById("citySelect").value;
+    prayerTimes=timesUSK[city];
+    localStorage.setItem("prayerTimes-"+city,JSON.stringify(prayerTimes));
     showNamazi(prayerTimes);
 }
 
-// Inicijalno učitavanje defaultnog grada
 function loadDefaultCity(){
-    const defaultCity = document.getElementById("citySelect").value;
-    prayerTimes = timesUSK[defaultCity];
-    localStorage.setItem("prayerTimes-"+defaultCity, JSON.stringify(prayerTimes));
+    const defaultCity=document.getElementById("citySelect").value;
+    prayerTimes=timesUSK[defaultCity];
+    localStorage.setItem("prayerTimes-"+defaultCity,JSON.stringify(prayerTimes));
     showNamazi(prayerTimes);
 }
-
 loadDefaultCity();
 
-// Service Worker za offline
-if("serviceWorker" in navigator){
-    navigator.serviceWorker.register("sw.js");
-}
+if("serviceWorker" in navigator){navigator.serviceWorker.register("sw.js");}
 </script>
-
 </body>
 </html>
