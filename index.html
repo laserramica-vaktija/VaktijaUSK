@@ -39,22 +39,23 @@ footer{margin-top:20px;font-size:16px;font-weight:bold;color:#fff;}
 <div class="namaz-container" id="namazi"></div>
 <footer>by: AmelR.</footer>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/praytimes/2.3.0/praytimes.min.js"></script>
 <script>
 // Hanefijski naziv
 let prayerNames={"Fajr":"Sabah","Dhuhr":"Podne","Asr":"Ikindija","Maghrib":"Akšam","Isha":"Jacija"};
 let prayerOrder=["Fajr","Dhuhr","Asr","Maghrib","Isha"];
 let prayerTimes={};
 
-// Demo službena vremena IZ BiH (vrijeme za 23. februar 2026, može se proširiti)
-const timesUSK={
-"Bihać":{"Fajr":"05:07","Dhuhr":"12:15","Asr":"15:08","Maghrib":"17:43","Isha":"19:08"},
-"Bosanska Krupa":{"Fajr":"05:07","Dhuhr":"12:15","Asr":"15:09","Maghrib":"17:44","Isha":"19:08"},
-"Bosanski Petrovac":{"Fajr":"05:08","Dhuhr":"12:15","Asr":"15:08","Maghrib":"17:44","Isha":"19:08"},
-"Bužim":{"Fajr":"05:07","Dhuhr":"12:15","Asr":"15:08","Maghrib":"17:44","Isha":"19:08"},
-"Cazin":{"Fajr":"05:07","Dhuhr":"12:15","Asr":"15:08","Maghrib":"17:44","Isha":"19:08"},
-"Ključ":{"Fajr":"05:08","Dhuhr":"12:15","Asr":"15:08","Maghrib":"17:44","Isha":"19:08"},
-"Sanski Most":{"Fajr":"05:08","Dhuhr":"12:15","Asr":"15:08","Maghrib":"17:44","Isha":"19:08"},
-"Velika Kladuša":{"Fajr":"05:07","Dhuhr":"12:15","Asr":"15:08","Maghrib":"17:44","Isha":"19:08"}
+// Gradovi i njihove koordinate (lat, lon)
+const cityCoords={
+"Bihać":[44.8167,15.8700],
+"Bosanska Krupa":[44.9939,16.0067],
+"Bosanski Petrovac":[44.7586,16.2183],
+"Bužim":[44.8914,15.8006],
+"Cazin":[44.9922,15.9833],
+"Ključ":[44.5461,16.0978],
+"Sanski Most":[44.7617,16.7108],
+"Velika Kladuša":[45.2036,15.8744]
 };
 
 function updateDate(){document.getElementById("date").innerHTML=new Date().toLocaleDateString("bs-BA");}
@@ -65,6 +66,7 @@ setInterval(updateClock,1000);updateClock();
 
 function enableNotifications(){Notification.requestPermission().then(p=>{if(p==="granted"){alert("Notifikacije uključene ✅");}});}
 
+// Schedule beep 5 min prije
 function schedulePrayer(vrijeme, ime){
     if(!vrijeme) return;
     const parts=vrijeme.split(":");
@@ -106,13 +108,22 @@ function showNamazi(times){
 
 function selectCity(){
     const city=document.getElementById("citySelect").value;
-    prayerTimes=timesUSK[city];
+    const coords=cityCoords[city];
+    const prayTimes=new PrayTimes('MWL'); // metoda može biti MWL, ISNA itd.
+    prayTimes.adjust({asr: 'Hanafi'}); // Hanefijski Asr
+    const now=new Date();
+    const times=prayTimes.getTimes(now,[coords[0],coords[1]], +1); // GMT +1 za BiH
+    prayerTimes={
+        "Fajr":times.fajr.slice(0,5),
+        "Dhuhr":times.dhuhr.slice(0,5),
+        "Asr":times.asr.slice(0,5),
+        "Maghrib":times.maghrib.slice(0,5),
+        "Isha":times.isha.slice(0,5)
+    };
     showNamazi(prayerTimes);
 }
 
-function loadDefaultCity(){
-    selectCity();
-}
+function loadDefaultCity(){selectCity();}
 loadDefaultCity();
 
 // Offline support
