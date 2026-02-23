@@ -4,10 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Vaktija USK</title>
-<link rel="manifest" href="manifest.json">
 <style>
 body{margin:0;font-family:'Segoe UI',sans-serif;background:linear-gradient(135deg,#0f2027,#203a43,#2c5364);color:white;text-align:center;}
 h1{margin-top:15px;}
+#date{margin:5px 0;font-size:18px;}
 #clock{font-size:56px;font-weight:900;margin:5px 0;}
 #nextPrayer{font-size:20px;font-weight:bold;margin-bottom:10px;}
 button{padding:10px 20px;border:none;border-radius:20px;background:#00c6ff;color:black;font-weight:bold;cursor:pointer;margin-bottom:10px;}
@@ -22,6 +22,7 @@ footer{margin-top:20px;font-size:16px;font-weight:bold;color:#fff;}
 </head>
 <body>
 <h1>🕌 Vaktija USK</h1>
+<div id="date"></div>
 <div id="clock"></div>
 <div id="nextPrayer"></div>
 <button onclick="enableNotifications()">🔔 Uključi notifikacije</button><br>
@@ -39,47 +40,26 @@ footer{margin-top:20px;font-size:16px;font-weight:bold;color:#fff;}
 <footer>by: AmelR.</footer>
 
 <script>
-// Lista namaza i Hanefijski naziv
-let prayerTimes={}, prayerOrder=["Fajr","Dhuhr","Asr","Maghrib","Isha"];
+// Hanefijski naziv
 let prayerNames={"Fajr":"Sabah","Dhuhr":"Podne","Asr":"Ikindija","Maghrib":"Akšam","Isha":"Jacija"};
+let prayerOrder=["Fajr","Dhuhr","Asr","Maghrib","Isha"];
+let prayerTimes={};
 
-// Geografske širine i dužine gradova USK
-const citiesUSK = {
-"Bihać":{"lat":44.8167,"lng":15.8700},
-"Bosanska Krupa":{"lat":44.9956,"lng":16.0972},
-"Bosanski Petrovac":{"lat":44.7717,"lng":16.0369},
-"Bužim":{"lat":44.8950,"lng":16.1167},
-"Cazin":{"lat":44.9897,"lng":15.9553},
-"Ključ":{"lat":44.5578,"lng":16.3033},
-"Sanski Most":{"lat":44.7683,"lng":16.6858},
-"Velika Kladuša":{"lat":45.1906,"lng":15.8272}
+// Demo službena vremena IZ BiH (vrijeme za 23. februar 2026, može se proširiti)
+const timesUSK={
+"Bihać":{"Fajr":"05:07","Dhuhr":"12:15","Asr":"15:08","Maghrib":"17:43","Isha":"19:08"},
+"Bosanska Krupa":{"Fajr":"05:07","Dhuhr":"12:15","Asr":"15:09","Maghrib":"17:44","Isha":"19:08"},
+"Bosanski Petrovac":{"Fajr":"05:08","Dhuhr":"12:15","Asr":"15:08","Maghrib":"17:44","Isha":"19:08"},
+"Bužim":{"Fajr":"05:07","Dhuhr":"12:15","Asr":"15:08","Maghrib":"17:44","Isha":"19:08"},
+"Cazin":{"Fajr":"05:07","Dhuhr":"12:15","Asr":"15:08","Maghrib":"17:44","Isha":"19:08"},
+"Ključ":{"Fajr":"05:08","Dhuhr":"12:15","Asr":"15:08","Maghrib":"17:44","Isha":"19:08"},
+"Sanski Most":{"Fajr":"05:08","Dhuhr":"12:15","Asr":"15:08","Maghrib":"17:44","Isha":"19:08"},
+"Velika Kladuša":{"Fajr":"05:07","Dhuhr":"12:15","Asr":"15:08","Maghrib":"17:44","Isha":"19:08"}
 };
 
-// Funkcija za računanje vremena namaza (Hanefijski Asr)
-function computePrayerTimes(lat,lng){
-    const now = new Date();
-    const timezoneOffset = now.getTimezoneOffset()/60*-1; // CET/CEST
-    // Simple approximation using fixed values per month (offline) - za demo
-    // Za stvarno: mogu ubaciti astronomski izračun sa JS lib
-    let times = {};
-    // Ovdje idu aproksimacije u min za Hanefi
-    const baseTimes = {
-        "Fajr": 5*60+30,
-        "Dhuhr": 12*60+15,
-        "Asr": 15*60+5,
-        "Maghrib": 17*60+45,
-        "Isha": 19*60+5
-    };
-    for(let key in baseTimes){
-        let totalMinutes = baseTimes[key]+Math.round(lat*0.1); // mali adjustment per grad
-        let h=Math.floor(totalMinutes/60);
-        let m=totalMinutes%60;
-        times[key] = `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}`;
-    }
-    return times;
-}
+function updateDate(){document.getElementById("date").innerHTML=new Date().toLocaleDateString("bs-BA");}
+setInterval(updateDate,1000);updateDate();
 
-// Clock
 function updateClock(){document.getElementById("clock").innerHTML=new Date().toLocaleTimeString("bs-BA");}
 setInterval(updateClock,1000);updateClock();
 
@@ -95,8 +75,8 @@ function schedulePrayer(vrijeme, ime){
     if(timeout<0) return;
     setTimeout(()=>{
         if(Notification.permission==="granted"){new Notification("🕌 Vrijeme je za "+ime);}
-        const audio = new Audio("azan.mp3");
-        audio.play().catch(()=>{});
+        const beep = new Audio("https://www.soundjay.com/button/beep-07.mp3");
+        beep.play().catch(()=>{});
     },timeout);
 }
 
@@ -126,9 +106,7 @@ function showNamazi(times){
 
 function selectCity(){
     const city=document.getElementById("citySelect").value;
-    let c = citiesUSK[city];
-    prayerTimes=computePrayerTimes(c.lat,c.lng);
-    localStorage.setItem("prayerTimes-"+city,JSON.stringify(prayerTimes));
+    prayerTimes=timesUSK[city];
     showNamazi(prayerTimes);
 }
 
