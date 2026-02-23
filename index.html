@@ -39,20 +39,47 @@ footer{margin-top:20px;font-size:16px;font-weight:bold;color:#fff;}
 <footer>by: AmelR.</footer>
 
 <script>
+// Lista namaza i Hanefijski naziv
 let prayerTimes={}, prayerOrder=["Fajr","Dhuhr","Asr","Maghrib","Isha"];
 let prayerNames={"Fajr":"Sabah","Dhuhr":"Podne","Asr":"Ikindija","Maghrib":"Akšam","Isha":"Jacija"};
 
-const timesUSK = {
-"Bihać":{"Fajr":"05:07","Dhuhr":"12:15","Asr":"15:08","Maghrib":"17:43","Isha":"19:08"},
-"Bosanska Krupa":{"Fajr":"05:09","Dhuhr":"12:16","Asr":"15:09","Maghrib":"17:44","Isha":"19:09"},
-"Bosanski Petrovac":{"Fajr":"05:12","Dhuhr":"12:18","Asr":"15:11","Maghrib":"17:46","Isha":"19:11"},
-"Bužim":{"Fajr":"05:06","Dhuhr":"12:14","Asr":"15:07","Maghrib":"17:42","Isha":"19:07"},
-"Cazin":{"Fajr":"05:05","Dhuhr":"12:13","Asr":"15:06","Maghrib":"17:41","Isha":"19:06"},
-"Ključ":{"Fajr":"05:10","Dhuhr":"12:17","Asr":"15:10","Maghrib":"17:45","Isha":"19:10"},
-"Sanski Most":{"Fajr":"05:08","Dhuhr":"12:15","Asr":"15:08","Maghrib":"17:43","Isha":"19:08"},
-"Velika Kladuša":{"Fajr":"05:04","Dhuhr":"12:12","Asr":"15:05","Maghrib":"17:40","Isha":"19:05"}
+// Geografske širine i dužine gradova USK
+const citiesUSK = {
+"Bihać":{"lat":44.8167,"lng":15.8700},
+"Bosanska Krupa":{"lat":44.9956,"lng":16.0972},
+"Bosanski Petrovac":{"lat":44.7717,"lng":16.0369},
+"Bužim":{"lat":44.8950,"lng":16.1167},
+"Cazin":{"lat":44.9897,"lng":15.9553},
+"Ključ":{"lat":44.5578,"lng":16.3033},
+"Sanski Most":{"lat":44.7683,"lng":16.6858},
+"Velika Kladuša":{"lat":45.1906,"lng":15.8272}
 };
 
+// Funkcija za računanje vremena namaza (Hanefijski Asr)
+function computePrayerTimes(lat,lng){
+    const now = new Date();
+    const timezoneOffset = now.getTimezoneOffset()/60*-1; // CET/CEST
+    // Simple approximation using fixed values per month (offline) - za demo
+    // Za stvarno: mogu ubaciti astronomski izračun sa JS lib
+    let times = {};
+    // Ovdje idu aproksimacije u min za Hanefi
+    const baseTimes = {
+        "Fajr": 5*60+30,
+        "Dhuhr": 12*60+15,
+        "Asr": 15*60+5,
+        "Maghrib": 17*60+45,
+        "Isha": 19*60+5
+    };
+    for(let key in baseTimes){
+        let totalMinutes = baseTimes[key]+Math.round(lat*0.1); // mali adjustment per grad
+        let h=Math.floor(totalMinutes/60);
+        let m=totalMinutes%60;
+        times[key] = `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}`;
+    }
+    return times;
+}
+
+// Clock
 function updateClock(){document.getElementById("clock").innerHTML=new Date().toLocaleTimeString("bs-BA");}
 setInterval(updateClock,1000);updateClock();
 
@@ -99,19 +126,18 @@ function showNamazi(times){
 
 function selectCity(){
     const city=document.getElementById("citySelect").value;
-    prayerTimes=timesUSK[city];
+    let c = citiesUSK[city];
+    prayerTimes=computePrayerTimes(c.lat,c.lng);
     localStorage.setItem("prayerTimes-"+city,JSON.stringify(prayerTimes));
     showNamazi(prayerTimes);
 }
 
 function loadDefaultCity(){
-    const defaultCity=document.getElementById("citySelect").value;
-    prayerTimes=timesUSK[defaultCity];
-    localStorage.setItem("prayerTimes-"+defaultCity,JSON.stringify(prayerTimes));
-    showNamazi(prayerTimes);
+    selectCity();
 }
 loadDefaultCity();
 
+// Offline support
 if("serviceWorker" in navigator){navigator.serviceWorker.register("sw.js");}
 </script>
 </body>
