@@ -1,9 +1,9 @@
-const CACHE="vaktija-pro-v1";
+const CACHE="vaktijausk-v1";
 
 self.addEventListener("install",e=>{
   e.waitUntil(
     caches.open(CACHE).then(cache=>{
-      return cache.addAll(["index.html","manifest.json"]);
+      return cache.addAll(["index.html","manifest.json","ikon.png","sw.js"]);
     })
   );
 });
