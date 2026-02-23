@@ -95,26 +95,34 @@ function applyOffset(timeStr){
 
 function getNextPrayer(){
     const now=new Date();
+    const divs=document.querySelectorAll(".namaz");
+    divs.forEach(d=>d.classList.remove("highlight")); // ukloni highlight
+    let next=null;
     for(let key of prayerOrder){
         const parts=prayerTimes[key].split(":");
         const prayerDate=new Date();
         prayerDate.setHours(parts[0],parts[1],0);
-        if(prayerDate>now){document.getElementById("nextPrayer").innerHTML="Sljedeći namaz: "+prayerNames[key]+" u "+prayerTimes[key];return key;}
+        if(prayerDate>now){
+            document.getElementById("nextPrayer").innerHTML="Sljedeći namaz: "+prayerNames[key]+" u "+prayerTimes[key];
+            divs[prayerOrder.indexOf(key)].classList.add("highlight"); // highlight sljedećeg
+            next=key;
+            break;
+        }
     }
-    document.getElementById("nextPrayer").innerHTML="Sljedeći namaz: Sabah sutra";
+    if(!next) document.getElementById("nextPrayer").innerHTML="Sljedeći namaz: Sabah sutra";
+    return next;
 }
 
 function showNamazi(times){
-    const container=document.getElementById("namazi");container.innerHTML="";
-    const next=getNextPrayer();
+    const container=document.getElementById("namazi"); container.innerHTML="";
     for(let key of prayerOrder){
         const div=document.createElement("div");
         div.className="namaz";
-        if(key===next) div.classList.add("highlight");
         div.innerHTML=`<h3>${prayerNames[key]}</h3><p>${times[key]}</p>`;
         container.appendChild(div);
         schedulePrayer(times[key],prayerNames[key]);
     }
+    getNextPrayer(); // highlight i next prayer
 }
 
 function selectCity(){
@@ -131,7 +139,7 @@ function selectCity(){
         "Maghrib":applyOffset(times.maghrib.slice(0,5)),
         "Isha":applyOffset(times.isha.slice(0,5))
     };
-    showNamazi(prayerTimes);
+    showNamazi(prayerTimes);  // prikazuje namaze odmah
 }
 
 function loadDefaultCity(){selectCity();}
