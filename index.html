@@ -3,256 +3,208 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>VaktijaUSK</title>
-<link rel="manifest" href="manifest.json">
+<title>Vaktija USK</title>
 
 <style>
 body{
-  margin:0;
-  font-family:system-ui;
-  background:linear-gradient(135deg,#0f172a,#1e293b);
-  color:white;
-  text-align:center;
+    margin:0;
+    font-family: Arial, sans-serif;
+    background: linear-gradient(135deg,#0f2027,#203a43,#2c5364);
+    color:white;
+    text-align:center;
 }
 
 h1{
-  padding:15px 0;
-  margin:0;
-  font-size:28px;
+    margin-top:15px;
 }
 
-#date{
-  font-size:16px;
-  margin-bottom:15px;
-  color:#94a3b8;
+#clock{
+    font-size:48px;
+    font-weight:bold;
+    margin:10px 0;
 }
 
-.card{
-  background:#1e293b;
-  margin:10px 20px;
-  padding:15px;
-  border-radius:16px;
-  box-shadow:0 4px 15px rgba(0,0,0,0.4);
+.namaz-container{
+    display:grid;
+    grid-template-columns: repeat(2,1fr);
+    gap:10px;
+    padding:15px;
 }
 
-.prayer-name{
-  font-size:16px;
-  font-weight:bold;
-  opacity:0.8;
+.namaz{
+    background:rgba(255,255,255,0.1);
+    border-radius:12px;
+    padding:12px;
+    backdrop-filter: blur(5px);
 }
 
-.prayer-time{
-  font-size:28px;
-  font-weight:bold;
-  margin-top:5px;
+.namaz h3{
+    margin:0;
+    font-size:20px;
 }
 
-button{
-  padding:10px 20px;
-  border:none;
-  border-radius:12px;
-  background:#22c55e;
-  color:white;
-  font-size:16px;
-  margin:8px;
+.namaz p{
+    margin:5px 0 0 0;
+    font-size:22px;
+    font-weight:bold;
 }
 
-/* NOVI QIBLA DIZAJN */
+#qibla{
+    margin-top:15px;
+}
+
 #compass{
-  width:140px;
-  height:140px;
-  margin:20px auto;
-  border:3px solid #22c55e;
-  border-radius:50%;
-  position:relative;
-  background:radial-gradient(circle,#1e293b 40%, #0f172a 100%);
+    width:120px;
+    height:120px;
+    border:4px solid white;
+    border-radius:50%;
+    margin:auto;
+    position:relative;
 }
 
 #needle{
-  width:4px;
-  height:60px;
-  background:#ef4444;
-  position:absolute;
-  top:10px;
-  left:50%;
-  transform-origin:bottom;
+    width:4px;
+    height:60px;
+    background:red;
+    position:absolute;
+    top:15px;
+    left:50%;
+    transform-origin: bottom center;
 }
-
-.qibla-text{
-  font-size:14px;
-  margin-top:5px;
-  color:#94a3b8;
-}
-
-.footer{
-  margin:20px;
-  font-size:14px;
-  color:#94a3b8;
-}
-
-.loading{
-  margin-top:15px;
-  font-size:16px;
-  color:#22c55e;
+button{
+    margin:10px;
+    padding:10px 20px;
+    border:none;
+    border-radius:8px;
+    background:#00c6ff;
+    color:black;
+    font-weight:bold;
+    cursor:pointer;
 }
 </style>
 </head>
 <body>
 
-<h1>🕌 VaktijaUSK</h1>
-<div id="date"></div>
-<div id="loading" class="loading">Učitavanje lokacije...</div>
+<h1>🕌 Vaktija USK</h1>
 
-<button onclick="getLocation()">🔄 Osvježi</button>
-<button onclick="enableNotifications()">🔔 Notifikacije</button>
+<div id="clock"></div>
 
-<div id="times"></div>
+<button onclick="enableNotifications()">🔔 Uključi notifikacije</button>
 
-<h2>🧭 Qibla</h2>
+<div class="namaz-container" id="namazi"></div>
+
+<div id="qibla">
+<h2>Kibla</h2>
 <div id="compass">
-  <div id="needle"></div>
+<div id="needle"></div>
 </div>
-<div class="qibla-text">Smjer prema Kabi</div>
-
-<div class="footer">
-  Dodajte na početni ekran za offline rad <br>
-  by: AmelR.
 </div>
 
 <script>
 
-let fajrTime="", dhuhrTime="", asrTime="", maghribTime="", ishaTime="";
+let prayerTimes = {};
 
-function updateDate(){
-  const today = new Date();
-  const options = {weekday:'long', day:'numeric', month:'long', year:'numeric'};
-  document.getElementById("date").textContent =
-      today.toLocaleDateString('bs-BA',options);
+function updateClock(){
+    const now = new Date();
+    document.getElementById("clock").innerHTML =
+        now.toLocaleTimeString("bs-BA");
 }
-updateDate();
+setInterval(updateClock,1000);
+updateClock();
 
-window.onload = function(){
-  getLocation();
-};
-
-function getLocation(){
-  if(navigator.geolocation){
-    navigator.geolocation.getCurrentPosition(pos=>{
-      const lat = pos.coords.latitude;
-      const lon = pos.coords.longitude;
-
-      document.getElementById("loading").style.display="none";
-
-      loadTimes(lat,lon);
-      calculateQibla(lat,lon);
-
-    }, ()=>{
-      document.getElementById("loading").textContent =
-        "Dozvolite pristup lokaciji.";
-    });
-  }
-}
-
-function loadTimes(lat,lon){
-  fetch(`https://api.aladhan.com/v1/timings?latitude=${lat}&longitude=${lon}&method=13`)
-  .then(res=>res.json())
-  .then(data=>{
-    let t=data.data.timings;
-
-    fajrTime = t.Fajr;
-    dhuhrTime = t.Dhuhr;
-    asrTime = t.Asr;
-    maghribTime = t.Maghrib;
-    ishaTime = t.Isha;
-
-    document.getElementById("times").innerHTML=`
-
-      <div class="card">
-        <div class="prayer-name">Sabah</div>
-        <div class="prayer-time">${t.Fajr}</div>
-      </div>
-
-      <div class="card">
-        <div class="prayer-name">Podne</div>
-        <div class="prayer-time">${t.Dhuhr}</div>
-      </div>
-
-      <div class="card">
-        <div class="prayer-name">Ikindija</div>
-        <div class="prayer-time">${t.Asr}</div>
-      </div>
-
-      <div class="card">
-        <div class="prayer-name">Akšam</div>
-        <div class="prayer-time">${t.Maghrib}</div>
-      </div>
-
-      <div class="card">
-        <div class="prayer-name">Jacija</div>
-        <div class="prayer-time">${t.Isha}</div>
-      </div>
-    `;
-  });
-}
 
 function enableNotifications(){
-  Notification.requestPermission().then(permission=>{
-    if(permission==="granted"){
-      scheduleAllPrayers();
-      alert("Notifikacije uključene ✅");
-    }
-  });
+    Notification.requestPermission().then(permission=>{
+        if(permission === "granted"){
+            alert("Notifikacije uključene ✅");
+        }
+    });
 }
 
-function scheduleAllPrayers(){
-  schedulePrayer(fajrTime,"Sabah");
-  schedulePrayer(dhuhrTime,"Podne");
-  schedulePrayer(asrTime,"Ikindija");
-  schedulePrayer(maghribTime,"Akšam");
-  schedulePrayer(ishaTime,"Jacija");
-}
 
 function schedulePrayer(vrijeme, ime){
-  if(!vrijeme) return;
+    if(!vrijeme) return;
 
-  const parts = vrijeme.split(":");
-  const now = new Date();
-  const prayerDate = new Date();
-  prayerDate.setHours(parts[0], parts[1], 0);
+    const parts = vrijeme.split(":");
+    const now = new Date();
+    const prayerDate = new Date();
+    prayerDate.setHours(parts[0], parts[1], 0);
 
-  let timeout = prayerDate - now - (5*60*1000);
-  if(timeout < 0) return;
+    let timeout = prayerDate - now - (5*60*1000);
 
-  setTimeout(()=>{
-    if(Notification.permission === "granted"){
-      new Notification(`Vrijeme je za ${ime} 🕌`);
-      const audio = new Audio("https://www.soundjay.com/misc/sounds/bell-ringing-05.mp3");
-      audio.play().catch(()=>{});
+    if(timeout < 0) return;
+
+    setTimeout(()=>{
+        if(Notification.permission === "granted"){
+            new Notification("🕌 Vrijeme je za " + ime);
+        }
+
+        const audio = new Audio("https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg");
+        audio.play().catch(()=>{});
+    }, timeout);
+}
+
+
+function showNamazi(times){
+
+    const container = document.getElementById("namazi");
+    container.innerHTML="";
+
+    const lista = {
+        "Fajr":"Sabah",
+        "Dhuhr":"Podne",
+        "Asr":"Ikindija",
+        "Maghrib":"Akšam",
+        "Isha":"Jacija"
+    };
+
+    for(let key in lista){
+
+        const div = document.createElement("div");
+        div.className="namaz";
+
+        div.innerHTML = `
+            <h3>${lista[key]}</h3>
+            <p>${times[key]}</p>
+        `;
+
+        container.appendChild(div);
+
+        schedulePrayer(times[key], lista[key]);
     }
-  }, timeout);
 }
 
-function calculateQibla(lat,lon){
-  const kaabaLat=21.4225*Math.PI/180;
-  const kaabaLon=39.8262*Math.PI/180;
-  const phi=lat*Math.PI/180;
-  const lambda=lon*Math.PI/180;
 
-  const angle=Math.atan2(
-    Math.sin(kaabaLon-lambda),
-    Math.cos(phi)*Math.tan(kaabaLat)-
-    Math.sin(phi)*Math.cos(kaabaLon-lambda)
-  );
-
-  const deg=angle*180/Math.PI;
-  document.getElementById("needle").style.transform=`rotate(${deg}deg)`;
+function getLocation(){
+    if(navigator.geolocation){
+        navigator.geolocation.getCurrentPosition(pos=>{
+            fetchTimes(pos.coords.latitude,pos.coords.longitude);
+        });
+    }
 }
 
-if("serviceWorker" in navigator){
-  navigator.serviceWorker.register("sw.js");
+function fetchTimes(lat,lon){
+    fetch(`https://api.aladhan.com/v1/timings?latitude=${lat}&longitude=${lon}&method=13`)
+    .then(res=>res.json())
+    .then(data=>{
+        prayerTimes = data.data.timings;
+        showNamazi(prayerTimes);
+    });
 }
+
+
+window.addEventListener("deviceorientation", event=>{
+    const needle = document.getElementById("needle");
+    if(event.alpha){
+        needle.style.transform = `rotate(${event.alpha}deg)`;
+    }
+});
+
+
+getLocation();
 
 </script>
 
 </body>
 </html>
+
