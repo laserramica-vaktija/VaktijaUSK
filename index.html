@@ -41,7 +41,6 @@ footer{margin-top:20px;font-size:16px;font-weight:bold;color:#fff;}
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/praytimes/2.3.0/praytimes.min.js"></script>
 <script>
-// Hanefijski naziv
 let prayerNames={"Fajr":"Sabah","Dhuhr":"Podne","Asr":"Ikindija","Maghrib":"Akšam","Isha":"Jacija"};
 let prayerOrder=["Fajr","Dhuhr","Asr","Maghrib","Isha"];
 let prayerTimes={};
@@ -58,9 +57,9 @@ const cityCoords={
 "Velika Kladuša":[45.2036,15.8744]
 };
 
+// datum i sat
 function updateDate(){document.getElementById("date").innerHTML=new Date().toLocaleDateString("bs-BA");}
 setInterval(updateDate,1000);updateDate();
-
 function updateClock(){document.getElementById("clock").innerHTML=new Date().toLocaleTimeString("bs-BA");}
 setInterval(updateClock,1000);updateClock();
 
@@ -80,6 +79,18 @@ function schedulePrayer(vrijeme, ime){
         const beep = new Audio("https://www.soundjay.com/button/beep-07.mp3");
         beep.play().catch(()=>{});
     },timeout);
+}
+
+// Offset -4 minute
+const offsetMinutes = -4;
+function applyOffset(timeStr){
+    const parts = timeStr.split(":");
+    let date = new Date();
+    date.setHours(parts[0], parts[1], 0);
+    date.setMinutes(date.getMinutes() + offsetMinutes);
+    let h = date.getHours().toString().padStart(2,"0");
+    let m = date.getMinutes().toString().padStart(2,"0");
+    return `${h}:${m}`;
 }
 
 function getNextPrayer(){
@@ -109,16 +120,16 @@ function showNamazi(times){
 function selectCity(){
     const city=document.getElementById("citySelect").value;
     const coords=cityCoords[city];
-    const prayTimes=new PrayTimes('MWL'); // metoda može biti MWL, ISNA itd.
+    const prayTimes=new PrayTimes('MWL'); // metoda MWL
     prayTimes.adjust({asr: 'Hanafi'}); // Hanefijski Asr
     const now=new Date();
-    const times=prayTimes.getTimes(now,[coords[0],coords[1]], +1); // GMT +1 za BiH
+    const times=prayTimes.getTimes(now,[coords[0],coords[1]], +1); // GMT +1
     prayerTimes={
-        "Fajr":times.fajr.slice(0,5),
-        "Dhuhr":times.dhuhr.slice(0,5),
-        "Asr":times.asr.slice(0,5),
-        "Maghrib":times.maghrib.slice(0,5),
-        "Isha":times.isha.slice(0,5)
+        "Fajr":applyOffset(times.fajr.slice(0,5)),
+        "Dhuhr":applyOffset(times.dhuhr.slice(0,5)),
+        "Asr":applyOffset(times.asr.slice(0,5)),
+        "Maghrib":applyOffset(times.maghrib.slice(0,5)),
+        "Isha":applyOffset(times.isha.slice(0,5))
     };
     showNamazi(prayerTimes);
 }
