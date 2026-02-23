@@ -150,6 +150,8 @@ function schedulePrayer(vrijeme, ime){
   setTimeout(()=>{
     if(Notification.permission === "granted"){
       new Notification(`Vrijeme je za ${ime} 🕌`);
+
+      // zvuk notifikacije
       const audio = new Audio("https://www.soundjay.com/misc/sounds/bell-ringing-05.mp3");
       audio.play().catch(err=>{
         console.log("Zvuk nije podržan:", err);
