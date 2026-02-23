@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Vaktija USK PRO</title>
+<title>Vaktija USK FIX</title>
 
 <style>
 body{
@@ -34,20 +34,13 @@ padding:15px;
 border-radius:15px;
 }
 .highlight{background:#00c6ff;color:black;}
-#adminPanel{
-display:none;
-background:#111;
-padding:15px;
-margin:10px;
-border-radius:10px;
-}
 footer{margin-top:20px;font-weight:bold;}
 </style>
 </head>
 
 <body>
 
-<h1>🕌 Vaktija USK PRO</h1>
+<h1>🕌 Vaktija USK</h1>
 <div id="clock"></div>
 <div id="nextPrayer"></div>
 
@@ -62,16 +55,7 @@ footer{margin-top:20px;font-weight:bold;}
 <option value="44.7586,16.2183">Bosanski Petrovac</option>
 </select>
 
-<button onclick="enableNotifications()">🔔 Notifikacije</button>
-<button onclick="adminLogin()">⚙ Admin</button>
-
 <div class="namaz-container" id="namazi"></div>
-
-<div id="adminPanel">
-<h3>Admin Podešavanje</h3>
-<div id="offsetInputs"></div>
-<button onclick="saveOffsets()">💾 Spasi</button>
-</div>
 
 <footer>by: AmelR.</footer>
 
@@ -79,20 +63,13 @@ footer{margin-top:20px;font-weight:bold;}
 
 <script>
 
-const prayerNames={
+const prayerNames=["fajr","dhuhr","asr","maghrib","isha"];
+const displayNames={
 fajr:"Sabah",
 dhuhr:"Podne",
 asr:"Ikindija",
 maghrib:"Akšam",
 isha:"Jacija"
-};
-
-let offsets = JSON.parse(localStorage.getItem("offsets")) || {
-fajr:0,
-dhuhr:0,
-asr:0,
-maghrib:0,
-isha:0
 };
 
 function updateClock(){
@@ -102,11 +79,13 @@ new Date().toLocaleTimeString("bs-BA");
 setInterval(updateClock,1000);
 updateClock();
 
-function enableNotifications(){
-Notification.requestPermission();
-}
-
 function calculate(){
+
+if(typeof PrayTimes === "undefined"){
+document.getElementById("namazi").innerHTML="<h2>Učitavanje...</h2>";
+setTimeout(calculate,500);
+return;
+}
 
 const coords=document.getElementById("citySelect").value.split(",");
 const lat=parseFloat(coords[0]);
@@ -116,23 +95,25 @@ const prayTimes=new PrayTimes("MWL");
 prayTimes.adjust({asr:"Hanafi"});
 
 const date=new Date();
-const tz=-date.getTimezoneOffset()/60;
+
+// SIGURAN timezone za BiH
+const tz = 1 + (isDST(date)?1:0);
 
 let times=prayTimes.getTimes(date,[lat,lon],tz);
 
 let container=document.getElementById("namazi");
 container.innerHTML="";
 
-let nextText="";
+let nextFound=false;
 
-for(let key in prayerNames){
+for(let key of prayerNames){
 
 let base=times[key];
-let parts=base.split(":");
+if(!base) continue;
 
+let parts=base.split(":");
 let d=new Date();
 d.setHours(parts[0],parts[1],0);
-d.setMinutes(d.getMinutes()+offsets[key]);
 
 let finalTime=
 d.getHours().toString().padStart(2,"0")+":"+
@@ -140,67 +121,34 @@ d.getMinutes().toString().padStart(2,"0");
 
 let div=document.createElement("div");
 div.className="namaz";
-div.innerHTML="<h3>"+prayerNames[key]+"</h3><p>"+finalTime+"</p>";
+div.innerHTML="<h3>"+displayNames[key]+"</h3><p>"+finalTime+"</p>";
 container.appendChild(div);
 
-if(!nextText && d>new Date()){
-nextText="Sljedeći namaz: "+prayerNames[key]+" u "+finalTime;
+if(!nextFound && d>new Date()){
+document.getElementById("nextPrayer").innerText=
+"Sljedeći namaz: "+displayNames[key]+" u "+finalTime;
 div.classList.add("highlight");
-}
-
-schedule(finalTime,prayerNames[key]);
-}
-
-if(nextText==="") nextText="Sljedeći namaz: Sabah sutra";
-
-document.getElementById("nextPrayer").innerText=nextText;
-}
-
-function schedule(time,name){
-
-let parts=time.split(":");
-let now=new Date();
-let target=new Date();
-target.setHours(parts[0],parts[1],0);
-
-let diff=target-now-(5*60000);
-if(diff<0) return;
-
-setTimeout(()=>{
-if(Notification.permission==="granted"){
-new Notification("🕌 Vrijeme je za "+name);
-}
-new Audio("https://www.soundjay.com/button/beep-07.mp3").play();
-},diff);
-}
-
-function adminLogin(){
-let pass=prompt("Unesi admin šifru:");
-if(pass==="1234"){ // promijeni šifru ovdje
-document.getElementById("adminPanel").style.display="block";
-generateAdmin();
+nextFound=true;
 }
 }
 
-function generateAdmin(){
-let html="";
-for(let key in prayerNames){
-html+=prayerNames[key]+" pomak (min): ";
-html+="<input type='number' id='off_"+key+"' value='"+offsets[key]+"'><br>";
-}
-document.getElementById("offsetInputs").innerHTML=html;
+if(!nextFound){
+document.getElementById("nextPrayer").innerText=
+"Sljedeći namaz: Sabah sutra";
 }
 
-function saveOffsets(){
-for(let key in prayerNames){
-offsets[key]=parseInt(document.getElementById("off_"+key).value)||0;
-}
-localStorage.setItem("offsets",JSON.stringify(offsets));
-alert("Spremljeno!");
-calculate();
 }
 
-calculate();
+// provjera ljetnog računanja vremena
+function isDST(d){
+let jan=new Date(d.getFullYear(),0,1);
+let jul=new Date(d.getFullYear(),6,1);
+return Math.max(jan.getTimezoneOffset(),jul.getTimezoneOffset()) != d.getTimezoneOffset();
+}
+
+window.onload=function(){
+setTimeout(calculate,300);
+};
 
 </script>
 
