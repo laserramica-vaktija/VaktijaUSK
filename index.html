@@ -14,7 +14,9 @@ body{
   color:white;
   text-align:center;
 }
-h1{padding:20px 0;margin:0;}
+h1{padding:15px 0;margin:0;font-size:28px;}
+h2{margin:10px 0;}
+#date{font-size:16px;margin-bottom:10px;color:#94a3b8;}
 .card{
   background:#1e293b;
   margin:10px 20px;
@@ -59,6 +61,7 @@ button{
 <body>
 
 <h1>🕌 VaktijaUSK</h1>
+<div id="date"></div>
 
 <button onclick="getLocation()">📍 Moja lokacija</button>
 <button onclick="enableNotifications()">🔔 Uključi notifikacije</button>
@@ -71,12 +74,19 @@ button{
 </div>
 
 <div class="footer">
-  Instaliraj preko "Dodaj na početni ekran" <br>
+  Dodajte na početni ekran za offline rad <br>
   by: AmelR.
 </div>
 
 <script>
-let fajrTime = "", dhuhrTime="", asrTime="", maghribTime="", ishaTime="";
+let fajrTime="", dhuhrTime="", asrTime="", maghribTime="", ishaTime="";
+
+function updateDate(){
+  const today = new Date();
+  const options = {weekday:'long', day:'numeric', month:'long', year:'numeric'};
+  document.getElementById("date").textContent = today.toLocaleDateString('bs-BA',options);
+}
+updateDate();
 
 function getLocation(){
   if(navigator.geolocation){
@@ -86,9 +96,7 @@ function getLocation(){
       loadTimes(lat,lon);
       calculateQibla(lat,lon);
     });
-  } else {
-    alert("GPS nije podržan");
-  }
+  } else { alert("GPS nije podržan"); }
 }
 
 function loadTimes(lat,lon){
@@ -101,58 +109,49 @@ function loadTimes(lat,lon){
     asrTime = t.Asr;
     maghribTime = t.Maghrib;
     ishaTime = t.Isha;
+
     document.getElementById("times").innerHTML=`
-      <div class="card">Fajr: ${t.Fajr}</div>
-      <div class="card">Dhuhr: ${t.Dhuhr}</div>
-      <div class="card">Asr: ${t.Asr}</div>
-      <div class="card">Maghrib: ${t.Maghrib}</div>
-      <div class="card">Isha: ${t.Isha}</div>
+      <div class="card">Sabah (Fajr): ${t.Fajr}</div>
+      <div class="card">Podne (Dhuhr): ${t.Dhuhr}</div>
+      <div class="card">Ikindija (Asr): ${t.Asr}</div>
+      <div class="card">Akšam (Maghrib): ${t.Maghrib}</div>
+      <div class="card">Jacija (Isha): ${t.Isha}</div>
     `;
   });
 }
 
 function enableNotifications(){
   Notification.requestPermission().then(permission=>{
-    if(permission==="granted"){
-      scheduleNotifications();
-    }
+    if(permission==="granted"){ scheduleNotifications(); }
   });
 }
 
 function scheduleNotifications(){
-  schedulePrayerNotification(fajrTime,"Fajr");
-  schedulePrayerNotification(dhuhrTime,"Dhuhr");
-  schedulePrayerNotification(asrTime,"Asr");
-  schedulePrayerNotification(maghribTime,"Maghrib");
-  schedulePrayerNotification(ishaTime,"Isha");
+  schedulePrayer(fajrTime,"Sabah (Fajr)");
+  schedulePrayer(dhuhrTime,"Podne (Dhuhr)");
+  schedulePrayer(asrTime,"Ikindija (Asr)");
+  schedulePrayer(maghribTime,"Akšam (Maghrib)");
+  schedulePrayer(ishaTime,"Jacija (Isha)");
 }
 
-function schedulePrayerNotification(time, name){
+function schedulePrayer(time,name){
   if(!time) return;
-  const parts = time.split(":");
-  const now = new Date();
-  const prayerDate = new Date();
+  const parts=time.split(":");
+  const now=new Date();
+  const prayerDate=new Date();
   prayerDate.setHours(parts[0],parts[1],0);
-  let timeout = prayerDate - now - (10*60*1000); // 10 minuta prije
-  if(timeout>0){
-    setTimeout(()=>{
-      new Notification(`Vrijeme je za ${name} namaz 🕌`);
-    },timeout);
-  }
+  let timeout = prayerDate - now - (10*60*1000);
+  if(timeout>0){ setTimeout(()=>{ new Notification(`Vrijeme je za ${name} 🕌`); },timeout); }
 }
 
 function calculateQibla(lat,lon){
   const kaabaLat=21.4225*Math.PI/180;
   const kaabaLon=39.8262*Math.PI/180;
-
   const phi=lat*Math.PI/180;
   const lambda=lon*Math.PI/180;
-
-  const angle=Math.atan2(
-    Math.sin(kaabaLon-lambda),
+  const angle=Math.atan2(Math.sin(kaabaLon-lambda),
     Math.cos(phi)*Math.tan(kaabaLat)-Math.sin(phi)*Math.cos(kaabaLon-lambda)
   );
-
   const deg=angle*180/Math.PI;
   document.getElementById("needle").style.transform=`rotate(${deg}deg)`;
 }
