@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Vaktija PRO</title>
+<title>VaktijaUSK</title>
 <link rel="manifest" href="manifest.json">
 
 <style>
@@ -58,7 +58,7 @@ button{
 </head>
 <body>
 
-<h1>🕌 Vaktija PRO</h1>
+<h1>🕌 VaktijaUSK</h1>
 
 <button onclick="getLocation()">📍 Moja lokacija</button>
 <button onclick="enableNotifications()">🔔 Uključi notifikacije</button>
@@ -71,11 +71,12 @@ button{
 </div>
 
 <div class="footer">
-  Instaliraj preko "Add to Home Screen"
+  Instaliraj preko "Dodaj na početni ekran" <br>
+  by: AmelR.
 </div>
 
 <script>
-let fajrTime = "";
+let fajrTime = "", dhuhrTime="", asrTime="", maghribTime="", ishaTime="";
 
 function getLocation(){
   if(navigator.geolocation){
@@ -96,6 +97,10 @@ function loadTimes(lat,lon){
   .then(data=>{
     let t=data.data.timings;
     fajrTime = t.Fajr;
+    dhuhrTime = t.Dhuhr;
+    asrTime = t.Asr;
+    maghribTime = t.Maghrib;
+    ishaTime = t.Isha;
     document.getElementById("times").innerHTML=`
       <div class="card">Fajr: ${t.Fajr}</div>
       <div class="card">Dhuhr: ${t.Dhuhr}</div>
@@ -109,22 +114,29 @@ function loadTimes(lat,lon){
 function enableNotifications(){
   Notification.requestPermission().then(permission=>{
     if(permission==="granted"){
-      scheduleFajrNotification();
+      scheduleNotifications();
     }
   });
 }
 
-function scheduleFajrNotification(){
-  const now = new Date();
-  if(!fajrTime) return;
-  const parts = fajrTime.split(":");
-  const fajrDate = new Date();
-  fajrDate.setHours(parts[0],parts[1],0);
+function scheduleNotifications(){
+  schedulePrayerNotification(fajrTime,"Fajr");
+  schedulePrayerNotification(dhuhrTime,"Dhuhr");
+  schedulePrayerNotification(asrTime,"Asr");
+  schedulePrayerNotification(maghribTime,"Maghrib");
+  schedulePrayerNotification(ishaTime,"Isha");
+}
 
-  let timeout = fajrDate - now - (10*60*1000); // 10 minuta prije
+function schedulePrayerNotification(time, name){
+  if(!time) return;
+  const parts = time.split(":");
+  const now = new Date();
+  const prayerDate = new Date();
+  prayerDate.setHours(parts[0],parts[1],0);
+  let timeout = prayerDate - now - (10*60*1000); // 10 minuta prije
   if(timeout>0){
     setTimeout(()=>{
-      new Notification("Vrijeme je za Fajr namaz 🕌");
+      new Notification(`Vrijeme je za ${name} namaz 🕌`);
     },timeout);
   }
 }
