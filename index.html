@@ -5,8 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Vaktija USK</title>
 
-<script src="praytimes.js"></script>
-
 <style>
 body{
     font-family: Arial;
@@ -16,23 +14,19 @@ body{
     margin:0;
     padding:20px;
 }
-select{
-    padding:10px;
-    font-size:16px;
-    margin-bottom:20px;
+select,button,input{
+    padding:8px;
+    margin:5px;
 }
 .namaz{
     font-size:22px;
-    margin:10px;
+    margin:8px;
 }
 .admin{
     margin-top:20px;
-    background:#16a34a;
-    padding:10px;
+    background:#1e293b;
+    padding:15px;
     border-radius:10px;
-}
-input{
-    width:60px;
 }
 </style>
 </head>
@@ -46,7 +40,7 @@ input{
 <option value="kladusa">Velika Kladuša</option>
 </select>
 
-<div id="vrijeme"></div>
+<h3 id="sat"></h3>
 
 <div class="namaz" id="fajr"></div>
 <div class="namaz" id="dhuhr"></div>
@@ -54,16 +48,18 @@ input{
 <div class="namaz" id="maghrib"></div>
 <div class="namaz" id="isha"></div>
 
-<button onclick="toggleAdmin()">Admin</button>
+<button onclick="login()">Admin</button>
 
-<div id="admin" class="admin" style="display:none;">
-<h3>Ručno podešavanje (minute)</h3>
+<div id="adminPanel" class="admin" style="display:none;">
+<h3>Admin Podešavanje</h3>
+
 Fajr <input type="number" id="fajr_offset" value="0"><br>
 Dhuhr <input type="number" id="dhuhr_offset" value="0"><br>
 Asr <input type="number" id="asr_offset" value="0"><br>
 Maghrib <input type="number" id="maghrib_offset" value="0"><br>
-Isha <input type="number" id="isha_offset" value="0"><br><br>
-<button onclick="spasiOffset()">Spasi</button>
+Isha <input type="number" id="isha_offset" value="0"><br>
+
+<button onclick="saveOffsets()">Spasi</button>
 </div>
 
 <audio id="beep">
@@ -72,97 +68,91 @@ Isha <input type="number" id="isha_offset" value="0"><br><br>
 
 <script>
 
-var prayTimes = new PrayTimes('MWL');
-prayTimes.adjust({asr:'Hanafi'});
+// ADMIN PASSWORD
+var ADMIN_PASSWORD = "1234";
 
+// KOORDINATE
 var gradovi = {
     krupa: {lat:44.8825, lng:16.1514},
     kladusa: {lat:45.1842, lng:15.8058}
 };
 
-var offset = {
-    fajr:0,
-    dhuhr:0,
-    asr:0,
-    maghrib:0,
-    isha:0
+var offsets = {
+    fajr:0,dhuhr:0,asr:0,maghrib:0,isha:0
 };
 
-function ucitajOffset(){
-    let o = localStorage.getItem("offset");
-    if(o){
-        offset = JSON.parse(o);
-        document.getElementById("fajr_offset").value = offset.fajr;
-        document.getElementById("dhuhr_offset").value = offset.dhuhr;
-        document.getElementById("asr_offset").value = offset.asr;
-        document.getElementById("maghrib_offset").value = offset.maghrib;
-        document.getElementById("isha_offset").value = offset.isha;
+function login(){
+    var pass = prompt("Unesi admin lozinku:1234");
+    if(pass === ADMIN_PASSWORD){
+        document.getElementById("adminPanel").style.display="block";
+        ucitajOffset();
+    }else{
+        alert("Pogrešna lozinka");
     }
 }
 
-function spasiOffset(){
-    offset.fajr = parseInt(document.getElementById("fajr_offset").value)||0;
-    offset.dhuhr = parseInt(document.getElementById("dhuhr_offset").value)||0;
-    offset.asr = parseInt(document.getElementById("asr_offset").value)||0;
-    offset.maghrib = parseInt(document.getElementById("maghrib_offset").value)||0;
-    offset.isha = parseInt(document.getElementById("isha_offset").value)||0;
-    localStorage.setItem("offset", JSON.stringify(offset));
+function ucitajOffset(){
+    let o = localStorage.getItem("offsets");
+    if(o){
+        offsets = JSON.parse(o);
+        document.getElementById("fajr_offset").value = offsets.fajr;
+        document.getElementById("dhuhr_offset").value = offsets.dhuhr;
+        document.getElementById("asr_offset").value = offsets.asr;
+        document.getElementById("maghrib_offset").value = offsets.maghrib;
+        document.getElementById("isha_offset").value = offsets.isha;
+    }
+}
+
+function saveOffsets(){
+    offsets.fajr = parseInt(document.getElementById("fajr_offset").value)||0;
+    offsets.dhuhr = parseInt(document.getElementById("dhuhr_offset").value)||0;
+    offsets.asr = parseInt(document.getElementById("asr_offset").value)||0;
+    offsets.maghrib = parseInt(document.getElementById("maghrib_offset").value)||0;
+    offsets.isha = parseInt(document.getElementById("isha_offset").value)||0;
+    localStorage.setItem("offsets", JSON.stringify(offsets));
+    alert("Spašeno!");
     update();
 }
 
-function toggleAdmin(){
-    let a = document.getElementById("admin");
-    a.style.display = a.style.display==="none" ? "block" : "none";
-}
-
-function dodajMinute(vrijeme, min){
-    let p = vrijeme.split(":");
-    let d = new Date();
-    d.setHours(parseInt(p[0]));
-    d.setMinutes(parseInt(p[1]) + min);
+function formatTime(d){
     return ("0"+d.getHours()).slice(-2)+":"+("0"+d.getMinutes()).slice(-2);
 }
 
-function update(){
-
-    let grad = document.getElementById("grad").value;
-    let koord = gradovi[grad];
-
-    let now = new Date();
-    document.getElementById("vrijeme").innerHTML =
-        now.toLocaleTimeString();
-
-    let times = prayTimes.getTimes(now, [koord.lat, koord.lng], 1);
-
-    document.getElementById("fajr").innerHTML =
-        "Fajr: " + dodajMinute(times.fajr, offset.fajr);
-
-    document.getElementById("dhuhr").innerHTML =
-        "Podne: " + dodajMinute(times.dhuhr, offset.dhuhr);
-
-    document.getElementById("asr").innerHTML =
-        "Ikindija: " + dodajMinute(times.asr, offset.asr);
-
-    document.getElementById("maghrib").innerHTML =
-        "Akšam: " + dodajMinute(times.maghrib, offset.maghrib);
-
-    document.getElementById("isha").innerHTML =
-        "Jacija: " + dodajMinute(times.isha, offset.isha);
-
-    provjeriBeep(times);
+function addMinutes(date, mins){
+    return new Date(date.getTime() + mins*60000);
 }
 
-function provjeriBeep(times){
-    let now = new Date();
-    let trenutno = ("0"+now.getHours()).slice(-2)+":"+
-                   ("0"+now.getMinutes()).slice(-2);
+function calculateTimes(){
 
-    let lista = [
-        dodajMinute(times.fajr, offset.fajr),
-        dodajMinute(times.dhuhr, offset.dhuhr),
-        dodajMinute(times.asr, offset.asr),
-        dodajMinute(times.maghrib, offset.maghrib),
-        dodajMinute(times.isha, offset.isha)
+    var grad = document.getElementById("grad").value;
+    var now = new Date();
+
+    // PRIVREMENO FIKSNO TEST VRIJEME (da sigurno vidiš namaze)
+    var fajr = new Date(now.getFullYear(), now.getMonth(), now.getDate(),5,30);
+    var dhuhr = new Date(now.getFullYear(), now.getMonth(), now.getDate(),12,15);
+    var asr = new Date(now.getFullYear(), now.getMonth(), now.getDate(),15,45);
+    var maghrib = new Date(now.getFullYear(), now.getMonth(), now.getDate(),17,40);
+    var isha = new Date(now.getFullYear(), now.getMonth(), now.getDate(),19,00);
+
+    fajr = addMinutes(fajr, offsets.fajr);
+    dhuhr = addMinutes(dhuhr, offsets.dhuhr);
+    asr = addMinutes(asr, offsets.asr);
+    maghrib = addMinutes(maghrib, offsets.maghrib);
+    isha = addMinutes(isha, offsets.isha);
+
+    document.getElementById("fajr").innerHTML = "Fajr: " + formatTime(fajr);
+    document.getElementById("dhuhr").innerHTML = "Podne: " + formatTime(dhuhr);
+    document.getElementById("asr").innerHTML = "Ikindija: " + formatTime(asr);
+    document.getElementById("maghrib").innerHTML = "Akšam: " + formatTime(maghrib);
+    document.getElementById("isha").innerHTML = "Jacija: " + formatTime(isha);
+
+    var trenutno = formatTime(now);
+    var lista = [
+        formatTime(fajr),
+        formatTime(dhuhr),
+        formatTime(asr),
+        formatTime(maghrib),
+        formatTime(isha)
     ];
 
     if(lista.includes(trenutno)){
@@ -170,11 +160,16 @@ function provjeriBeep(times){
     }
 }
 
+function update(){
+    document.getElementById("sat").innerHTML =
+        "Trenutno vrijeme: " + new Date().toLocaleTimeString();
+    calculateTimes();
+}
+
 document.getElementById("grad").addEventListener("change", update);
 
-ucitajOffset();
 update();
-setInterval(update, 1000);
+setInterval(update,1000);
 
 </script>
 
