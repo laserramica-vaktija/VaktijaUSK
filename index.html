@@ -4,82 +4,47 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Vaktija USK</title>
+<link rel="manifest" href="manifest.json">
 
 <style>
 body{
     margin:0;
-    font-family: Arial, sans-serif;
-    background: linear-gradient(135deg,#0f2027,#203a43,#2c5364);
-    color:white;
+    font-family:'Segoe UI',sans-serif;
+    background:linear-gradient(135deg,#e3f2fd,#bbdefb,#90caf9);
+    color:#0d47a1;
     text-align:center;
 }
 
-h1{
-    margin-top:15px;
-}
+h1{ margin-top:15px; }
 
 #clock{
-    font-size:48px;
+    font-size:56px;
+    font-weight:900;
+}
+
+#nextPrayer{
+    font-size:20px;
     font-weight:bold;
-    margin:10px 0;
+    margin-bottom:10px;
 }
 
 .namaz-container{
     display:grid;
     grid-template-columns: repeat(2,1fr);
-    gap:10px;
+    gap:15px;
     padding:15px;
 }
 
 .namaz{
-    background:rgba(255,255,255,0.1);
-    border-radius:12px;
-    padding:12px;
-    backdrop-filter: blur(5px);
+    background:white;
+    border-radius:15px;
+    padding:15px;
+    box-shadow:0 4px 12px rgba(0,0,0,0.1);
 }
 
-.namaz h3{
-    margin:0;
-    font-size:20px;
-}
-
-.namaz p{
-    margin:5px 0 0 0;
-    font-size:22px;
-    font-weight:bold;
-}
-
-#qibla{
-    margin-top:15px;
-}
-
-#compass{
-    width:120px;
-    height:120px;
-    border:4px solid white;
-    border-radius:50%;
-    margin:auto;
-    position:relative;
-}
-
-#needle{
-    width:4px;
-    height:60px;
-    background:red;
-    position:absolute;
-    top:15px;
-    left:50%;
-    transform-origin: bottom center;
-}
-button{
-    margin:10px;
-    padding:10px 20px;
-    border:none;
-    border-radius:8px;
-    background:#00c6ff;
-    color:black;
-    font-weight:bold;
-    cursor:pointer;
+.highlight{
+    background:#0d47a1;
+    color:white;
 }
 </style>
 </head>
@@ -88,98 +53,63 @@ button{
 <h1>🕌 Vaktija USK</h1>
 
 <div id="clock"></div>
-
-<button onclick="enableNotifications()">🔔 Uključi notifikacije</button>
+<div id="nextPrayer"></div>
 
 <div class="namaz-container" id="namazi"></div>
 
-<div id="qibla">
-<h2>Kibla</h2>
-<div id="compass">
-<div id="needle"></div>
-</div>
-</div>
-
 <script>
-
 let prayerTimes = {};
+let prayerOrder = ["Fajr","Dhuhr","Asr","Maghrib","Isha"];
+let prayerNames = {
+    "Fajr":"Sabah",
+    "Dhuhr":"Podne",
+    "Asr":"Ikindija",
+    "Maghrib":"Akšam",
+    "Isha":"Jacija"
+};
 
 function updateClock(){
-    const now = new Date();
     document.getElementById("clock").innerHTML =
-        now.toLocaleTimeString("bs-BA");
+        new Date().toLocaleTimeString("bs-BA");
 }
 setInterval(updateClock,1000);
 updateClock();
 
-
-function enableNotifications(){
-    Notification.requestPermission().then(permission=>{
-        if(permission === "granted"){
-            alert("Notifikacije uključene ✅");
-        }
-    });
-}
-
-
-function schedulePrayer(vrijeme, ime){
-    if(!vrijeme) return;
-
-    const parts = vrijeme.split(":");
+function getNextPrayer(){
     const now = new Date();
-    const prayerDate = new Date();
-    prayerDate.setHours(parts[0], parts[1], 0);
 
-    let timeout = prayerDate - now - (5*60*1000);
+    for(let key of prayerOrder){
+        const parts = prayerTimes[key].split(":");
+        const prayerDate = new Date();
+        prayerDate.setHours(parts[0], parts[1], 0);
 
-    if(timeout < 0) return;
-
-    setTimeout(()=>{
-        if(Notification.permission === "granted"){
-            new Notification("🕌 Vrijeme je za " + ime);
+        if(prayerDate > now){
+            document.getElementById("nextPrayer").innerHTML =
+                "Sljedeći namaz: " + prayerNames[key] + " u " + prayerTimes[key];
+            return key;
         }
+    }
 
-        const audio = new Audio("https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg");
-        audio.play().catch(()=>{});
-    }, timeout);
+    document.getElementById("nextPrayer").innerHTML =
+        "Sljedeći namaz: Sabah sutra";
 }
-
 
 function showNamazi(times){
-
     const container = document.getElementById("namazi");
     container.innerHTML="";
 
-    const lista = {
-        "Fajr":"Sabah",
-        "Dhuhr":"Podne",
-        "Asr":"Ikindija",
-        "Maghrib":"Akšam",
-        "Isha":"Jacija"
-    };
+    const next = getNextPrayer();
 
-    for(let key in lista){
-
+    for(let key of prayerOrder){
         const div = document.createElement("div");
         div.className="namaz";
+        if(key === next) div.classList.add("highlight");
 
         div.innerHTML = `
-            <h3>${lista[key]}</h3>
+            <h3>${prayerNames[key]}</h3>
             <p>${times[key]}</p>
         `;
-
         container.appendChild(div);
-
-        schedulePrayer(times[key], lista[key]);
-    }
-}
-
-
-function getLocation(){
-    if(navigator.geolocation){
-        navigator.geolocation.getCurrentPosition(pos=>{
-            fetchTimes(pos.coords.latitude,pos.coords.longitude);
-        });
     }
 }
 
@@ -188,23 +118,51 @@ function fetchTimes(lat,lon){
     .then(res=>res.json())
     .then(data=>{
         prayerTimes = data.data.timings;
+
+        // SPREMI OFFLINE
+        localStorage.setItem("prayerTimes", JSON.stringify(prayerTimes));
+
         showNamazi(prayerTimes);
+    })
+    .catch(()=>{
+        // AKO NEMA INTERNETA
+        const saved = localStorage.getItem("prayerTimes");
+        if(saved){
+            prayerTimes = JSON.parse(saved);
+            showNamazi(prayerTimes);
+        }
     });
 }
 
-
-window.addEventListener("deviceorientation", event=>{
-    const needle = document.getElementById("needle");
-    if(event.alpha){
-        needle.style.transform = `rotate(${event.alpha}deg)`;
+function getLocation(){
+    if(navigator.geolocation){
+        navigator.geolocation.getCurrentPosition(pos=>{
+            fetchTimes(pos.coords.latitude,pos.coords.longitude);
+        },()=>{
+            loadOffline();
+        });
+    } else {
+        loadOffline();
     }
-});
+}
 
+function loadOffline(){
+    const saved = localStorage.getItem("prayerTimes");
+    if(saved){
+        prayerTimes = JSON.parse(saved);
+        showNamazi(prayerTimes);
+    }
+}
 
 getLocation();
 
+// REGISTRACIJA SERVICE WORKER
+if("serviceWorker" in navigator){
+    navigator.serviceWorker.register("sw.js");
+}
 </script>
 
 </body>
 </html>
+
 
