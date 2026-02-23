@@ -10,8 +10,8 @@
 body{
     margin:0;
     font-family:'Segoe UI',sans-serif;
-    background:linear-gradient(135deg,#e3f2fd,#bbdefb,#90caf9);
-    color:#0d47a1;
+    background: linear-gradient(135deg,#0f2027,#203a43,#2c5364);
+    color:white;
     text-align:center;
 }
 
@@ -20,11 +20,23 @@ h1{ margin-top:15px; }
 #clock{
     font-size:56px;
     font-weight:900;
+    margin:5px 0;
 }
 
 #nextPrayer{
     font-size:20px;
     font-weight:bold;
+    margin-bottom:10px;
+}
+
+button{
+    padding:10px 20px;
+    border:none;
+    border-radius:20px;
+    background:#00c6ff;
+    color:black;
+    font-weight:bold;
+    cursor:pointer;
     margin-bottom:10px;
 }
 
@@ -36,15 +48,49 @@ h1{ margin-top:15px; }
 }
 
 .namaz{
-    background:white;
+    background: rgba(255,255,255,0.1);
     border-radius:15px;
     padding:15px;
-    box-shadow:0 4px 12px rgba(0,0,0,0.1);
+    backdrop-filter: blur(5px);
+}
+
+.namaz h3{
+    margin:0;
+    font-size:20px;
+}
+
+.namaz p{
+    margin-top:8px;
+    font-size:24px;
+    font-weight:bold;
 }
 
 .highlight{
-    background:#0d47a1;
-    color:white;
+    background:#00c6ff;
+    color:black;
+}
+
+#qibla{
+    margin-top:20px;
+}
+
+#compass{
+    width:100px;
+    height:100px;
+    border:3px solid white;
+    border-radius:50%;
+    margin:auto;
+    position:relative;
+}
+
+#needle{
+    width:4px;
+    height:45px;
+    background:red;
+    position:absolute;
+    top:15px;
+    left:50%;
+    transform-origin: bottom center;
 }
 </style>
 </head>
@@ -55,7 +101,16 @@ h1{ margin-top:15px; }
 <div id="clock"></div>
 <div id="nextPrayer"></div>
 
+<button onclick="enableNotifications()">🔔 Uključi notifikacije</button>
+
 <div class="namaz-container" id="namazi"></div>
+
+<div id="qibla">
+<h3>Kibla</h3>
+<div id="compass">
+<div id="needle"></div>
+</div>
+</div>
 
 <script>
 let prayerTimes = {};
@@ -75,41 +130,58 @@ function updateClock(){
 setInterval(updateClock,1000);
 updateClock();
 
+function enableNotifications(){
+    Notification.requestPermission().then(permission=>{
+        if(permission === "granted"){
+            alert("Notifikacije uključene ✅");
+        }
+    });
+}
+
+function schedulePrayer(vrijeme, ime){
+    if(!vrijeme) return;
+    const parts = vrijeme.split(":");
+    const now = new Date();
+    const prayerDate = new Date();
+    prayerDate.setHours(parts[0], parts[1], 0);
+    let timeout = prayerDate - now - (5*60*1000);
+    if(timeout < 0) return;
+
+    setTimeout(()=>{
+        if(Notification.permission === "granted"){
+            new Notification("🕌 Vrijeme je za " + ime);
+        }
+        const audio = new Audio("https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg");
+        audio.play().catch(()=>{});
+    }, timeout);
+}
+
 function getNextPrayer(){
     const now = new Date();
-
     for(let key of prayerOrder){
         const parts = prayerTimes[key].split(":");
         const prayerDate = new Date();
         prayerDate.setHours(parts[0], parts[1], 0);
-
         if(prayerDate > now){
             document.getElementById("nextPrayer").innerHTML =
                 "Sljedeći namaz: " + prayerNames[key] + " u " + prayerTimes[key];
             return key;
         }
     }
-
-    document.getElementById("nextPrayer").innerHTML =
-        "Sljedeći namaz: Sabah sutra";
+    document.getElementById("nextPrayer").innerHTML = "Sljedeći namaz: Sabah sutra";
 }
 
 function showNamazi(times){
     const container = document.getElementById("namazi");
     container.innerHTML="";
-
     const next = getNextPrayer();
-
     for(let key of prayerOrder){
         const div = document.createElement("div");
         div.className="namaz";
         if(key === next) div.classList.add("highlight");
-
-        div.innerHTML = `
-            <h3>${prayerNames[key]}</h3>
-            <p>${times[key]}</p>
-        `;
+        div.innerHTML = `<h3>${prayerNames[key]}</h3><p>${times[key]}</p>`;
         container.appendChild(div);
+        schedulePrayer(times[key], prayerNames[key]);
     }
 }
 
@@ -118,14 +190,10 @@ function fetchTimes(lat,lon){
     .then(res=>res.json())
     .then(data=>{
         prayerTimes = data.data.timings;
-
-        // SPREMI OFFLINE
         localStorage.setItem("prayerTimes", JSON.stringify(prayerTimes));
-
         showNamazi(prayerTimes);
     })
     .catch(()=>{
-        // AKO NEMA INTERNETA
         const saved = localStorage.getItem("prayerTimes");
         if(saved){
             prayerTimes = JSON.parse(saved);
@@ -138,9 +206,7 @@ function getLocation(){
     if(navigator.geolocation){
         navigator.geolocation.getCurrentPosition(pos=>{
             fetchTimes(pos.coords.latitude,pos.coords.longitude);
-        },()=>{
-            loadOffline();
-        });
+        },()=>{loadOffline();});
     } else {
         loadOffline();
     }
@@ -156,13 +222,11 @@ function loadOffline(){
 
 getLocation();
 
-// REGISTRACIJA SERVICE WORKER
 if("serviceWorker" in navigator){
     navigator.serviceWorker.register("sw.js");
 }
+
 </script>
 
 </body>
 </html>
-
-
