@@ -41,11 +41,11 @@ footer{margin-top:20px;font-size:16px;font-weight:bold;color:#fff;}
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/praytimes/2.3.0/praytimes.min.js"></script>
 <script>
-let prayerNames={"Fajr":"Sabah","Dhuhr":"Podne","Asr":"Ikindija","Maghrib":"Akšam","Isha":"Jacija"};
-let prayerOrder=["Fajr","Dhuhr","Asr","Maghrib","Isha"];
+const prayerNames={"Fajr":"Sabah","Dhuhr":"Podne","Asr":"Ikindija","Maghrib":"Akšam","Isha":"Jacija"};
+const prayerOrder=["Fajr","Dhuhr","Asr","Maghrib","Isha"];
 let prayerTimes={};
 
-// Gradovi i njihove koordinate (lat, lon)
+// Gradovi i koordinate
 const cityCoords={
 "Bihać":[44.8167,15.8700],
 "Bosanska Krupa":[44.9939,16.0067],
@@ -58,11 +58,12 @@ const cityCoords={
 };
 
 // datum i sat
-function updateDate(){document.getElementById("date").innerHTML=new Date().toLocaleDateString("bs-BA");}
-setInterval(updateDate,1000);updateDate();
-function updateClock(){document.getElementById("clock").innerHTML=new Date().toLocaleTimeString("bs-BA");}
-setInterval(updateClock,1000);updateClock();
+function updateDate(){document.getElementById("date").textContent=new Date().toLocaleDateString("bs-BA");}
+setInterval(updateDate,1000); updateDate();
+function updateClock(){document.getElementById("clock").textContent=new Date().toLocaleTimeString("bs-BA");}
+setInterval(updateClock,1000); updateClock();
 
+// Notifikacije
 function enableNotifications(){Notification.requestPermission().then(p=>{if(p==="granted"){alert("Notifikacije uključene ✅");}});}
 
 // Schedule beep 5 min prije
@@ -76,45 +77,44 @@ function schedulePrayer(vrijeme, ime){
     if(timeout<0) return;
     setTimeout(()=>{
         if(Notification.permission==="granted"){new Notification("🕌 Vrijeme je za "+ime);}
-        const beep = new Audio("https://www.soundjay.com/button/beep-07.mp3");
+        const beep=new Audio("https://www.soundjay.com/button/beep-07.mp3");
         beep.play().catch(()=>{});
     },timeout);
 }
 
 // Offset -4 minute
-const offsetMinutes = -4;
+const offsetMinutes=-4;
 function applyOffset(timeStr){
-    const parts = timeStr.split(":");
-    let date = new Date();
-    date.setHours(parts[0], parts[1], 0);
-    date.setMinutes(date.getMinutes() + offsetMinutes);
-    let h = date.getHours().toString().padStart(2,"0");
-    let m = date.getMinutes().toString().padStart(2,"0");
-    return `${h}:${m}`;
+    const parts=timeStr.split(":");
+    let date=new Date();
+    date.setHours(parts[0],parts[1],0);
+    date.setMinutes(date.getMinutes()+offsetMinutes);
+    return date.getHours().toString().padStart(2,"0")+":"+date.getMinutes().toString().padStart(2,"0");
 }
 
+// Prikaz sljedećeg namaza
 function getNextPrayer(){
     const now=new Date();
     const divs=document.querySelectorAll(".namaz");
-    divs.forEach(d=>d.classList.remove("highlight")); // ukloni highlight
+    divs.forEach(d=>d.classList.remove("highlight"));
     let next=null;
     for(let key of prayerOrder){
         const parts=prayerTimes[key].split(":");
         const prayerDate=new Date();
         prayerDate.setHours(parts[0],parts[1],0);
         if(prayerDate>now){
-            document.getElementById("nextPrayer").innerHTML="Sljedeći namaz: "+prayerNames[key]+" u "+prayerTimes[key];
-            divs[prayerOrder.indexOf(key)].classList.add("highlight"); // highlight sljedećeg
-            next=key;
-            break;
+            document.getElementById("nextPrayer").textContent="Sljedeći namaz: "+prayerNames[key]+" u "+prayerTimes[key];
+            divs[prayerOrder.indexOf(key)].classList.add("highlight");
+            next=key; break;
         }
     }
-    if(!next) document.getElementById("nextPrayer").innerHTML="Sljedeći namaz: Sabah sutra";
-    return next;
+    if(!next) document.getElementById("nextPrayer").textContent="Sljedeći namaz: Sabah sutra";
 }
 
+// Prikaz namaza
 function showNamazi(times){
-    const container=document.getElementById("namazi"); container.innerHTML="";
+    const container=document.getElementById("namazi");
+    container.innerHTML="";
     for(let key of prayerOrder){
         const div=document.createElement("div");
         div.className="namaz";
@@ -122,16 +122,17 @@ function showNamazi(times){
         container.appendChild(div);
         schedulePrayer(times[key],prayerNames[key]);
     }
-    getNextPrayer(); // highlight i next prayer
+    getNextPrayer();
 }
 
+// Odabir grada
 function selectCity(){
     const city=document.getElementById("citySelect").value;
     const coords=cityCoords[city];
-    const prayTimes=new PrayTimes('MWL'); // metoda MWL
-    prayTimes.adjust({asr: 'Hanafi'}); // Hanefijski Asr
+    const prayTimes=new PrayTimes('MWL');
+    prayTimes.adjust({asr:'Hanafi'});
     const now=new Date();
-    const times=prayTimes.getTimes(now,[coords[0],coords[1]], +1); // GMT +1
+    const times=prayTimes.getTimes(now,[coords[0],coords[1]],+1);
     prayerTimes={
         "Fajr":applyOffset(times.fajr.slice(0,5)),
         "Dhuhr":applyOffset(times.dhuhr.slice(0,5)),
@@ -139,11 +140,11 @@ function selectCity(){
         "Maghrib":applyOffset(times.maghrib.slice(0,5)),
         "Isha":applyOffset(times.isha.slice(0,5))
     };
-    showNamazi(prayerTimes);  // prikazuje namaze odmah
+    showNamazi(prayerTimes);
 }
 
-function loadDefaultCity(){selectCity();}
-loadDefaultCity();
+// Učitaj default grad
+selectCity();
 
 // Offline support
 if("serviceWorker" in navigator){navigator.serviceWorker.register("sw.js");}
