@@ -40,7 +40,7 @@ footer{margin-top:20px;font-size:16px;font-weight:bold;color:#fff;}
 <footer>by: AmelR.</footer>
 
 <script>
-// Staticka tabela namaza za januar/februar (primjer, mora se ažurirati po IZ)
+// Staticka tabela namaza (Hanefijski mesheb)
 const fixedTimes = {
 "Bihać":{"Fajr":"05:07","Dhuhr":"12:15","Asr":"15:08","Maghrib":"17:43","Isha":"19:08"},
 "Bosanska Krupa":{"Fajr":"05:07","Dhuhr":"12:15","Asr":"15:09","Maghrib":"17:44","Isha":"19:09"},
@@ -138,9 +138,6 @@ function selectCity(){
 
 // učitaj default grad
 selectCity();
-
-// Offline support
-if("serviceWorker" in navigator){navigator.serviceWorker.register("sw.js");}
 </script>
 </body>
 </html>
