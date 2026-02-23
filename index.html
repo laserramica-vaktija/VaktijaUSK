@@ -61,7 +61,6 @@ button:hover{ background:#15803d; }
     font-size:22px;
 }
 
-/* AKTIVNI NAMAZ */
 .aktivni{
     background:#16a34a !important;
     box-shadow:0 0 20px rgba(22,163,74,0.8);
@@ -89,13 +88,14 @@ button:hover{ background:#15803d; }
 <h2>Vaktija USK (Hanefijski)</h2>
 
 <select id="grad">
-<option value="krupa">Bosanska Krupa</option>
-<option value="kladusa">Velika Kladuša</option>
 <option value="bihac">Bihać</option>
-<option value="cazin">Cazin</option>
-<option value="sanski">Sanski Most</option>
+<option value="krupa">Bosanska Krupa</option>
 <option value="buzim">Bužim</option>
+<option value="cazin">Cazin</option>
+<option value="kladusa">Velika Kladuša</option>
+<option value="sanski">Sanski Most</option>
 <option value="petrovac">Bosanski Petrovac</option>
+<option value="kljuc">Ključ</option>
 </select>
 
 <h3 id="sat"></h3>
@@ -133,13 +133,11 @@ button:hover{ background:#15803d; }
 
 <div id="adminPanel" class="admin" style="display:none;">
 <h3>Admin Podešavanje (minute)</h3>
-
 Fajr <input type="number" id="fajr_offset" value="0"><br>
 Dhuhr <input type="number" id="dhuhr_offset" value="0"><br>
 Asr <input type="number" id="asr_offset" value="0"><br>
 Maghrib <input type="number" id="maghrib_offset" value="0"><br>
 Isha <input type="number" id="isha_offset" value="0"><br>
-
 <button onclick="saveOffsets()">Spasi</button>
 </div>
 
@@ -147,13 +145,47 @@ Isha <input type="number" id="isha_offset" value="0"><br>
 <source src="beep.mp3" type="audio/mpeg">
 </audio>
 
+<script src="https://cdn.jsdelivr.net/npm/suncalc@1.9.0/suncalc.js"></script>
 <script>
-
 var ADMIN_PASSWORD = "1234";
+var offsets = {fajr:0,dhuhr:0,asr:0,maghrib:0,isha:0};
 
-var offsets = {
-    fajr:0,dhuhr:0,asr:0,maghrib:0,isha:0
+// Koordinate gradova
+const gradovi = {
+    bihac: {lat:44.8167, lon:15.8700},
+    krupa: {lat:44.8847, lon:16.0778},
+    buzim: {lat:44.9280, lon:16.1694},
+    cazin: {lat:44.9931, lon:16.5153},
+    kladusa: {lat:45.2042, lon:15.8450},
+    sanski: {lat:44.7683, lon:16.4878},
+    petrovac: {lat:44.4939, lon:16.1050},
+    kljuc: {lat:44.5525, lon:16.1892}
 };
+
+// Hanefijski faktor Asr
+function getPrayerTimes(lat, lon, date){
+    var times = SunCalc.getTimes(date, lat, lon);
+
+    // Fajr (prezore 1h prije izlaska sunca)
+    var fajr = times.nadir;
+    fajr.setHours(5,30); // privremeno fiksno, kasnije može prema true astronomical
+
+    // Podne
+    var dhuhr = times.solarNoon;
+    // Asr Hanefijski (shadow factor 2)
+    var asr = new Date(times.solarNoon.getTime() + 3*60*60*1000); // approx
+    var maghrib = times.sunset;
+    var isha = new Date(times.sunset.getTime() + 1.5*60*60*1000); // approx
+
+    // Dodaj offset
+    fajr = addMinutes(fajr, offsets.fajr);
+    dhuhr = addMinutes(dhuhr, offsets.dhuhr);
+    asr = addMinutes(asr, offsets.asr);
+    maghrib = addMinutes(maghrib, offsets.maghrib);
+    isha = addMinutes(isha, offsets.isha);
+
+    return {fajr,dhuhr,asr,maghrib,isha};
+}
 
 function login(){
     var pass = prompt("Unesi admin lozinku:");
@@ -188,57 +220,48 @@ function saveOffsets(){
     update();
 }
 
-function formatTime(d){
-    return ("0"+d.getHours()).slice(-2)+":"+("0"+d.getMinutes()).slice(-2);
-}
-
 function addMinutes(date, mins){
     return new Date(date.getTime() + mins*60000);
 }
 
-function calculateTimes(){
+function formatTime(d){
+    return ("0"+d.getHours()).slice(-2)+":"+("0"+d.getMinutes()).slice(-2);
+}
 
+function update(){
+    var grad = document.getElementById("grad").value;
+    var lat = gradovi[grad].lat;
+    var lon = gradovi[grad].lon;
     var now = new Date();
 
-    var fajr = new Date(now.getFullYear(), now.getMonth(), now.getDate(),5,30);
-    var dhuhr = new Date(now.getFullYear(), now.getMonth(), now.getDate(),12,15);
-    var asr = new Date(now.getFullYear(), now.getMonth(), now.getDate(),15,45);
-    var maghrib = new Date(now.getFullYear(), now.getMonth(), now.getDate(),17,40);
-    var isha = new Date(now.getFullYear(), now.getMonth(), now.getDate(),19,00);
+    var times = getPrayerTimes(lat, lon, now);
 
-    fajr = addMinutes(fajr, offsets.fajr);
-    dhuhr = addMinutes(dhuhr, offsets.dhuhr);
-    asr = addMinutes(asr, offsets.asr);
-    maghrib = addMinutes(maghrib, offsets.maghrib);
-    isha = addMinutes(isha, offsets.isha);
-
-    document.getElementById("fajr").innerHTML = formatTime(fajr);
-    document.getElementById("dhuhr").innerHTML = formatTime(dhuhr);
-    document.getElementById("asr").innerHTML = formatTime(asr);
-    document.getElementById("maghrib").innerHTML = formatTime(maghrib);
-    document.getElementById("isha").innerHTML = formatTime(isha);
+    document.getElementById("fajr").innerHTML = formatTime(times.fajr);
+    document.getElementById("dhuhr").innerHTML = formatTime(times.dhuhr);
+    document.getElementById("asr").innerHTML = formatTime(times.asr);
+    document.getElementById("maghrib").innerHTML = formatTime(times.maghrib);
+    document.getElementById("isha").innerHTML = formatTime(times.isha);
 
     // reset boje
     document.querySelectorAll(".namaz").forEach(el => el.classList.remove("aktivni"));
 
-    if(now >= fajr && now < dhuhr) document.getElementById("box_fajr").classList.add("aktivni");
-    else if(now >= dhuhr && now < asr) document.getElementById("box_dhuhr").classList.add("aktivni");
-    else if(now >= asr && now < maghrib) document.getElementById("box_asr").classList.add("aktivni");
-    else if(now >= maghrib && now < isha) document.getElementById("box_maghrib").classList.add("aktivni");
+    if(now >= times.fajr && now < times.dhuhr) document.getElementById("box_fajr").classList.add("aktivni");
+    else if(now >= times.dhuhr && now < times.asr) document.getElementById("box_dhuhr").classList.add("aktivni");
+    else if(now >= times.asr && now < times.maghrib) document.getElementById("box_asr").classList.add("aktivni");
+    else if(now >= times.maghrib && now < times.isha) document.getElementById("box_maghrib").classList.add("aktivni");
     else document.getElementById("box_isha").classList.add("aktivni");
 
-}
-
-function update(){
     document.getElementById("sat").innerHTML =
-        "Trenutno vrijeme: " + new Date().toLocaleTimeString();
-    calculateTimes();
+        "Trenutno vrijeme: " + now.toLocaleTimeString();
 }
 
+// update svaki sekund
 update();
 setInterval(update,1000);
 
-</script>
+// promjena grada
+document.getElementById("grad").addEventListener("change", update);
 
+</script>
 </body>
 </html>
